@@ -228,7 +228,8 @@ DAT.Globe = function(container, colorFn) {
 
     hammertime.on('panstart', onMouseDown);
     mc.add( new Hammer.Tap({ event: 'doubletap', taps: 2 }) );
-    mc.on('doubletap', onDoubleClick);
+    if('ontouchstart' in document.documentElement)
+        mc.on('doubletap', onDoubleClick);
     container.addEventListener('mousedown', onMouseDown, false);
     container.addEventListener('mousewheel', onMouseWheel, false);
     hammertime.on('pinchin', function(e) {
@@ -496,7 +497,8 @@ DAT.Globe = function(container, colorFn) {
         }
     });
 
-    alert('Percentage of Accuracy ' + totalPoints + '%');
+    document.getElementById('result').innerHTML =   totalPoints;
+    document.getElementById('result_container').style.display = 'block';
   }
 
   Number.prototype.toRadians    =   function() {

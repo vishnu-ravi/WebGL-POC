@@ -14,7 +14,11 @@
 	    </div>
 			<div id="container"></div>
 	    <div id="result_container" style="display:none;">
-	      <p>Your Result</p>
+			<div class="innerWrap">
+				<h2>Your Result</h2>
+				<p>Percentage of Accuracy <span id="result"></span></p>
+				<button id="btn_continue">Continue</button>
+			</div>
 	    </div>
 		<script type="text/javascript" src="/javascript/lib/hammer.min.js"></script>
 	    <script type="text/javascript" src="/javascript/lib/three.min.js"></script>
@@ -172,6 +176,14 @@
 						return false;
 
 					globe.submitRoute();
+				};
+
+				document.getElementById('btn_continue').onclick 	=	function(e) {
+					e.preventDefault();
+
+					document.getElementById('result_container').style.display = 'none';
+					document.getElementById('result').innerHTML =	'';
+					globe.clearAll();
 				};
 			}
 	    </script>
