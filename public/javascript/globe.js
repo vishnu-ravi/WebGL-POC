@@ -214,14 +214,13 @@ DAT.Globe = function(container, colorFn) {
     container.addEventListener('mousedown', onMouseDown, false);
     container.addEventListener('mousewheel', onMouseWheel, false);
     hammertime.on('pinch', function(e) {
-        console.log(e);
         var delta   =   (e.deltaX + e.deltaY) / 2;
 
         if(e.scale < 1 && delta > 1)
             delta = -(delta);
         else if(e.scale >= 1 && delta < 1)
             delta = -(delta);
-            
+
         zoom(delta * 0.3);
     });
 
@@ -765,7 +764,7 @@ DAT.Globe = function(container, colorFn) {
     function zoom(delta) {
         distanceTarget  -=   delta;
         distanceTarget  =   distanceTarget > 1000 ? 1000 : distanceTarget;
-        distanceTarget  =   distanceTarget < 350 ? 350 : distanceTarget;
+        distanceTarget  =   distanceTarget < 300 ? 300 : distanceTarget;
     }
 
     function animate() {
