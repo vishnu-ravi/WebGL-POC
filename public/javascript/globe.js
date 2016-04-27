@@ -226,7 +226,7 @@ DAT.Globe = function(container, colorFn) {
     hammertime.get('pan').set({ direction: Hammer.DIRECTION_ALL });
 
     hammertime.on('panstart', onMouseDown);
-    hammertime.on('press', onMouseDown);
+
     container.addEventListener('mousedown', onMouseDown, false);
     container.addEventListener('mousewheel', onMouseWheel, false);
     hammertime.on('pinch', function(e) {
@@ -550,7 +550,7 @@ DAT.Globe = function(container, colorFn) {
 
       targetOnDown.x    =   target.x;
       targetOnDown.y    =   target.y;
-
+      alert('here');
       hammertime.on('tap', onDoubleClick);
       container.style.cursor  =   'move';
   }
