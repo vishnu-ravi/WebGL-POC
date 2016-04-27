@@ -8,8 +8,8 @@
 	</head>
 	<body>
 	    <div class="controlBox">
-	      <a href="#" id="btn_clear" disabled="true">Clear</a>
-	      <a href="#" id="btn_undo" disabled="true">Undo</a>
+		  <button id="btn_clear" disabled="true">Clear</button>
+		  <button id="btn_undo" disabled="true">Undo</button>
 	      <button id="btn_submit" disabled="true">Submit</button>
 	    </div>
 			<div id="container"></div>
@@ -160,7 +160,7 @@
 					e.preventDefault();
 
 					var is_disabled	=	this.getAttribute('disabled');
-
+					
 					if(is_disabled == true)
 						return false;
 

@@ -440,8 +440,9 @@ DAT.Globe = function(container, colorFn) {
 
     if(length == 2)
         document.getElementById('btn_undo').setAttribute('disabled', true);
-    else
-        document.getElementById('btn_undo').setAttribute('disabled', false);
+    else {
+        document.getElementById('btn_undo').removeAttribute('disabled');
+    }
 
     document.getElementById('btn_submit').setAttribute('disabled', true);
   }
@@ -613,8 +614,8 @@ DAT.Globe = function(container, colorFn) {
       if(latLngConnection.length == 13)
             return false;
 
-      document.getElementById('btn_clear').setAttribute('disabled', false);
-      document.getElementById('btn_undo').setAttribute('disabled', false);
+      document.getElementById('btn_clear').removeAttribute('disabled');
+      document.getElementById('btn_undo').removeAttribute('disabled');
 
       var is_touch_event    =   typeof event.changedPointers == 'undefined' ? false : true;
       var offsetX, offsetY;
@@ -655,7 +656,7 @@ DAT.Globe = function(container, colorFn) {
             var name    =   'marker_' + index;
             latLngConnection.push({lat: lat, lng: lon, name: name, check: true});
 
-            moveToPoint(lat, lon);
+            //moveToPoint(lat, lon);
             addSprite('marker', lat, lon, true, name, true);
 
             var tmp         =   latLngConnection.slice(0);
