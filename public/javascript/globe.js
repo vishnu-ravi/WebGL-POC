@@ -215,7 +215,9 @@ DAT.Globe = function(container, colorFn) {
     container.addEventListener('mousewheel', onMouseWheel, false);
     hammertime.on('pinch', function(e) {
         console.log(e);
-        zoom(e.scale);
+        var delta   =   (e.deltaX + e.deltaY) / 2;
+        console.log(delta);
+        zoom(delta * 0.3);
     });
 
     document.addEventListener('keydown', onDocumentKeyDown, false);
