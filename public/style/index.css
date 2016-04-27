@@ -33,3 +33,7 @@ a:hover {
 #result_container .innerWrap {
     text-align: center;
 }
+
+.controlBox {
+    position: absolute;
+}
