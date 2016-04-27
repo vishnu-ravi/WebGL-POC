@@ -206,8 +206,7 @@ DAT.Globe = function(container, colorFn) {
 
     container.appendChild(renderer.domElement);
 
-    container.addEventListener('mousedown', onMouseDown, false);
-
+    container.addEventListener('mousedown touchstart', onMouseDown, false);
     container.addEventListener('mousewheel', onMouseWheel, false);
 
     document.addEventListener('keydown', onDocumentKeyDown, false);
@@ -508,7 +507,7 @@ DAT.Globe = function(container, colorFn) {
     event.preventDefault();
 
     container.addEventListener('mousemove', onMouseMove, false);
-    container.addEventListener('mouseup', onMouseUp, false);
+    container.addEventListener('mouseup touchend', onMouseUp, false);
     container.addEventListener('mouseout', onMouseOut, false);
     container.addEventListener('dblclick', onDoubleClick, false);
 
