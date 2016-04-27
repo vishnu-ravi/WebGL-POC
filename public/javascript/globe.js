@@ -104,7 +104,7 @@ DAT.Globe = function(container, colorFn) {
 
   var curZoomSpeed  =   0;
   var zoomSpeed     =   50;
-
+  var hammertime;
   var mouse         =   { x: 0, y: 0 },
       mouseOnDown   =   { x: 0, y: 0 };
   var rotation      =   { x: 0, y: 0 },
@@ -206,7 +206,12 @@ DAT.Globe = function(container, colorFn) {
 
     container.appendChild(renderer.domElement);
 
-    container.addEventListener('mousedown touchstart', onMouseDown, false);
+    hammertime  =   new Hammer(container, {});
+    hammertime.get('pinch').set({ enable: true });
+    hammertime.get('pan').set({ direction: Hammer.DIRECTION_ALL });
+
+    hammertime.on('panstart', onMouseDown);
+    container.addEventListener('mousedown', onMouseDown, false);
     container.addEventListener('mousewheel', onMouseWheel, false);
 
     document.addEventListener('keydown', onDocumentKeyDown, false);
@@ -499,46 +504,56 @@ DAT.Globe = function(container, colorFn) {
   }
 
   function onMouseDown(event) {
-    var el  =   document.querySelectorAll( '.hide' );
-    for( var j = 0; j < el.length; j++ ) {
-        el[ j ].style.opacity       =   0;
-        el[ j ].style.pointerEvents =   'none';
-    }
-    event.preventDefault();
+      var el  =   document.querySelectorAll( '.hide' );
+      for( var j = 0; j < el.length; j++ ) {
+          el[ j ].style.opacity       =   0;
+          el[ j ].style.pointerEvents =   'none';
+      }
+      event.preventDefault();
 
-    container.addEventListener('mousemove', onMouseMove, false);
-    container.addEventListener('mouseup touchend', onMouseUp, false);
-    container.addEventListener('mouseout', onMouseOut, false);
-    container.addEventListener('dblclick', onDoubleClick, false);
+      hammertime.on('panmove', onMouseMove);
+      hammertime.on('panend pancancel', onMouseUp);
+      container.addEventListener('mousemove', onMouseMove, false);
+      container.addEventListener('mouseup', onMouseUp, false);
+      container.addEventListener('mouseout', onMouseOut, false);
+      container.addEventListener('dblclick', onDoubleClick, false);
 
-    mouseOnDown.x   =   - event.clientX;
-    mouseOnDown.y   =   event.clientY;
+      var is_touch_event    =   typeof event.changedPointers == 'undefined' ? false : true;
+      mouseOnDown.x     =   is_touch_event ? (- event.changedPointers[0].clientX) : (- event.clientX);
+      mouseOnDown.y     =   is_touch_event ? event.changedPointers[0].clientY : event.clientY;
 
-    targetOnDown.x  =   target.x;
-    targetOnDown.y  =   target.y;
-
-    container.style.cursor  =   'move';
+      targetOnDown.x    =   target.x;
+      targetOnDown.y    =   target.y;
+      hammertime.on('tap', onDoubleClick);
+      container.style.cursor  =   'move';
   }
 
   function onMouseMove(event) {
-    mouse.x =   - event.clientX;
-    mouse.y =   event.clientY;
 
-    var zoomDamp    =   distance/1000;
+      var is_touch_event    =   typeof event.changedPointers == 'undefined' ? false : true;
 
-    target.x    =   targetOnDown.x + (mouse.x - mouseOnDown.x) * 0.005 * zoomDamp;
-    target.y    =   targetOnDown.y + (mouse.y - mouseOnDown.y) * 0.005 * zoomDamp;
+      mouse.x =   is_touch_event ? (- event.changedPointers[0].clientX) : (- event.clientX);
+      mouse.y =   is_touch_event ? event.changedPointers[0].clientY : event.clientY;
 
-    target.y    =   target.y > PI_HALF ? PI_HALF : target.y;
-    target.y    =   target.y < - PI_HALF ? - PI_HALF : target.y;
+      var zoomDamp    =   distance/1000;
+
+      target.x    =   targetOnDown.x + (mouse.x - mouseOnDown.x) * 0.005 * zoomDamp;
+      target.y    =   targetOnDown.y + (mouse.y - mouseOnDown.y) * 0.005 * zoomDamp;
+
+      target.y    =   target.y > PI_HALF ? PI_HALF : target.y;
+      target.y    =   target.y < - PI_HALF ? - PI_HALF : target.y;
   }
 
   function onMouseUp(event) {
+
+    var is_touch_event    =   typeof event.changedPointer == 'undefined' ? false : true;
 	var el     =   document.querySelectorAll( '.hide' );
 	for( var j = 0; j < el.length; j++ ) {
         el[ j ].style.opacity       =   1;
         el[ j ].style.pointerEvents =   'auto';
 	}
+    hammertime.off('panmove');
+    hammertime.off('panend pancancel');
     container.removeEventListener('mousemove', onMouseMove, false);
     container.removeEventListener('mouseup', onMouseUp, false);
     container.removeEventListener('mouseout', onMouseOut, false);
