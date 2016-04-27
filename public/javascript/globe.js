@@ -66,7 +66,7 @@ DAT.Globe = function(container, colorFn) {
   };
 
   var camera, scene, renderer, w, h, globe3d
-  var globeRadius   =   200;
+  var globeRadius   =   150;
   var vec3_origin   =   new THREE.Vector3(0,0,0);
   var iconScene, showIcons  =   true;
   var pathScene, markerScene;
@@ -184,7 +184,7 @@ DAT.Globe = function(container, colorFn) {
     globe3d =   worldMesh;
     scene.add(worldMesh);
 
-    geometry    =   new THREE.SphereGeometry(200, 40, 30 );
+    geometry    =   new THREE.SphereGeometry(globeRadius, 40, 30 );
     shader      =   Shaders['atmosphere'];
     uniforms    =   THREE.UniformsUtils.clone(shader.uniforms);
 
@@ -298,7 +298,7 @@ DAT.Globe = function(container, colorFn) {
         lng     =   data[i + 1];
         color   =   colorFnWrapper(data,i);
         size    =   data[i + 2];
-        size    =   size * 200;
+        size    =   size * globeRadius;
         addPoint(lat, lng, size, color, subgeo);
     }
 
@@ -339,9 +339,9 @@ DAT.Globe = function(container, colorFn) {
     var phi     =   (90 - lat) * Math.PI / 180;
     var theta   =   (180 - lng) * Math.PI / 180;
 
-    point.position.x    =   200 * Math.sin(phi) * Math.cos(theta);
-    point.position.y    =   200 * Math.cos(phi);
-    point.position.z    =   200 * Math.sin(phi) * Math.sin(theta);
+    point.position.x    =   globeRadius * Math.sin(phi) * Math.cos(theta);
+    point.position.y    =   globeRadius * Math.cos(phi);
+    point.position.z    =   globeRadius * Math.sin(phi) * Math.sin(theta);
 
     point.lookAt(worldMesh.position);
 
@@ -859,7 +859,7 @@ DAT.Globe = function(container, colorFn) {
 		var phi   =   (90 - lat) * Math.PI / 180;
 		var theta =   (180 - lng) * Math.PI / 180;
 
-		var r     =   210;
+		var r     =   155;
 
 		var x     =   r * Math.sin(phi) * Math.cos(theta);
 		var y     =   r * Math.cos(phi);
