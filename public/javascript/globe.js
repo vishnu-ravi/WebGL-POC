@@ -488,7 +488,7 @@ DAT.Globe = function(container, colorFn) {
                 {
                     var d   =   distanceBetweenTwoPoints(item.lat, item.lng, location.lat, location.lng);
                     d       =   d /100000;
-                    console.log(item.name, location.name);
+
                     if(d <= 8)
                         totalPoints +=  10;
                     else if(d <= 16 && d > 8)
