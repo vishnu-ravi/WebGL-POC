@@ -1,0 +1,59 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>WebGl POC</title>
+		<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+        <link href="/style/index.css" type="text/css" rel="stylesheet" />
+	</head>
+	<body onload="initialize();">
+		<div id="block_earth"></div>
+
+    <script src="http://www.webglearth.com/v2/api.js"></script>
+    <script>
+      function initialize() {
+        var earth   = new WE.map('block_earth');
+        var latlng  = [];
+
+        WE.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(earth);
+
+        var marker_singapore  = WE.marker([1.3521, 103.8198]).addTo(earth);
+        latlng.push({lat: 1.3521, lng: 103.8198});
+
+        console.log(latlng);
+        //setView to Singapore
+        earth.setView([1.3521, 103.8198], 2);
+        earth.on('dragend', function(e)
+        {
+          console.log(e);
+        });
+        earth.on('click', function(e) {
+          console.log(e);
+          var marker  = WE.marker([e.latitude, e.longitude]).addTo(earth);
+          var uniq_id = Math.round(Math.random()*100000) + 1;
+
+          marker.bindPopup("<a href='#' id='btn_marker_delete_" + uniq_id + "'>Delete</a>", {maxWidth: 150, closeButton: true});
+          earth.panTo([e.latitude, e.longitude], 1000);
+
+          var new_latlng  = {'lat': e.latitude, 'lng': e.longitude};
+          latlng.push(new_latlng);
+
+          var tmp = latlng.slice(0);
+
+          var last_two  = tmp.slice(-2);
+          console.log(tmp, last_two);
+
+          var options = {color: '#0037ff', opacity: 1, fillColor: '#f00', fillOpacity: 0.1, weight: 2};
+          console.log([[last_two[0].lat, last_two[0].lng], [last_two[1].lat, last_two[1].lng], [last_two[1].lat, last_two[1].lng]]);
+          var polygonB = WE.polygon([[last_two[0].lat, last_two[0].lng], [last_two[1].lat, last_two[1].lng], [last_two[1].lat, last_two[1].lng]], options).addTo(earth);
+          document.getElementById('btn_marker_delete_' + uniq_id).onclick = function(e) {
+            e.preventDefault();
+            earth.removeMarker(marker);
+          };
+        });
+
+
+      }
+    </script>
+	</body>
+</html>
