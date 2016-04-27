@@ -213,6 +213,10 @@ DAT.Globe = function(container, colorFn) {
     hammertime.on('panstart', onMouseDown);
     container.addEventListener('mousedown', onMouseDown, false);
     container.addEventListener('mousewheel', onMouseWheel, false);
+    hammertime.on('pinch', function(e) {
+        console.log(e);
+        //zoom(event.wheelDeltaY * 0.3);
+    });
 
     document.addEventListener('keydown', onDocumentKeyDown, false);
 
