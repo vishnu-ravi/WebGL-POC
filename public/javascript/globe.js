@@ -604,7 +604,7 @@ DAT.Globe = function(container, colorFn) {
 
   function onDoubleClick(event) {
       event.preventDefault();
-      console.log('doublt');
+      
       if(latLngConnection.length == 13)
             return false;
 
