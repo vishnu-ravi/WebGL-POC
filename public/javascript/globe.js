@@ -216,7 +216,12 @@ DAT.Globe = function(container, colorFn) {
     hammertime.on('pinch', function(e) {
         console.log(e);
         var delta   =   (e.deltaX + e.deltaY) / 2;
-        console.log(delta);
+
+        if(e.scale < 1 && delta > 1)
+            delta = -(delta);
+        else if(e.scale >= 1 && delta < 1)
+            delta = -(delta);
+            
         zoom(delta * 0.3);
     });
 
