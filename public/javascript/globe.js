@@ -228,8 +228,10 @@ DAT.Globe = function(container, colorFn) {
 
     hammertime.on('panstart', onMouseDown);
     mc.add( new Hammer.Tap({ event: 'doubletap', taps: 2 }) );
+
     if('ontouchstart' in document.documentElement)
         mc.on('doubletap', onDoubleClick);
+
     container.addEventListener('mousedown', onMouseDown, false);
     container.addEventListener('mousewheel', onMouseWheel, false);
     hammertime.on('pinchin', function(e) {
@@ -885,7 +887,7 @@ DAT.Globe = function(container, colorFn) {
 		var phi   =   (90 - lat) * Math.PI / 180;
 		var theta =   (180 - lng) * Math.PI / 180;
 
-		var r     =   155;
+		var r     =   globeRadius + 10;
 
 		var x     =   r * Math.sin(phi) * Math.cos(theta);
 		var y     =   r * Math.cos(phi);
