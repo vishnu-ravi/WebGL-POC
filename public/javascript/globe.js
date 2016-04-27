@@ -550,7 +550,7 @@ DAT.Globe = function(container, colorFn) {
 
       targetOnDown.x    =   target.x;
       targetOnDown.y    =   target.y;
-      alert('here');
+      
       hammertime.on('tap', onDoubleClick);
       container.style.cursor  =   'move';
   }
