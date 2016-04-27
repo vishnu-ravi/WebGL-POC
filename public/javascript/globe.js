@@ -231,6 +231,8 @@ DAT.Globe = function(container, colorFn) {
 
     if('ontouchstart' in document.documentElement)
         mc.on('doubletap', onDoubleClick);
+    else
+        container.addEventListener('dblclick', onDoubleClick, false);
 
     container.addEventListener('mousedown', onMouseDown, false);
     container.addEventListener('mousewheel', onMouseWheel, false);
@@ -548,14 +550,6 @@ DAT.Globe = function(container, colorFn) {
 
       var is_touch_event    =   typeof event.changedPointers == 'undefined' ? false : true;
 
-      if(is_touch_event)
-      {
-          mc.off('doubletap');
-        mc.on('doubletap', onDoubleClick);
-        }
-      else
-        container.addEventListener('dblclick', onDoubleClick, false);
-
       container.addEventListener('mouseout', onMouseOut, false);
 
       mouseOnDown.x     =   is_touch_event ? (- event.changedPointers[0].clientX) : (- event.clientX);
@@ -610,7 +604,7 @@ DAT.Globe = function(container, colorFn) {
 
   function onDoubleClick(event) {
       event.preventDefault();
-
+      console.log('doublt');
       if(latLngConnection.length == 13)
             return false;
 
