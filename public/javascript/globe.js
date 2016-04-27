@@ -231,15 +231,12 @@ DAT.Globe = function(container, colorFn) {
     mc.on('doubletap', onDoubleClick);
     container.addEventListener('mousedown', onMouseDown, false);
     container.addEventListener('mousewheel', onMouseWheel, false);
-    hammertime.on('pinch', function(e) {
-        var delta   =   (e.deltaX + e.deltaY) / 2;
+    hammertime.on('pinchin', function(e) {
+        zoom(80);
+    });
 
-        if(e.scale < 1 && delta > 1)
-            delta = -(delta);
-        else if(e.scale >= 1 && delta < 1)
-            delta = -(delta);
-        console.log(delta);
-        zoom(delta * 0.3);
+    hammertime.on('pinchout', function(e) {
+        zoom(-80);
     });
 
     document.addEventListener('keydown', onDocumentKeyDown, false);
