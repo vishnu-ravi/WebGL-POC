@@ -76,17 +76,17 @@ DAT.Globe = function(container, colorFn) {
   var latLngSet2    =   [];
   var latLngAcutal  =   [];
   latLngAcutal.push({lat: 1.3521, lng: 103.8198, check: false, name: 'marker_1'});
-  latLngAcutal.push({lat: 1.46761, lng: 114.47321, check: true, name: 'marker_2'});
-  latLngAcutal.push({lat: -4.64397, lng: 141.58199, check: true, name: 'marker_3'});
+  latLngAcutal.push({lat: 11.44369, lng: 104.39086, check: true, name: 'marker_2'});
+  latLngAcutal.push({lat: 24.67631, lng: 113.98106, check: true, name: 'marker_3'});
   latLngAcutal.push({lat: 25.0330, lng: 121.5654, check: false, name: 'marker_4'});
-  latLngAcutal.push({lat: 40.93945, lng: 118.36611, check: true, name: 'marker_5'});
-  latLngAcutal.push({lat: 36.44208, lng: 76.02376, check: true, name: 'marker_6'});
-  latLngAcutal.push({lat: 24.20766, lng: 55.51183, check: true, name: 'marker_7'});
-  latLngAcutal.push({lat: 13.26989, lng: 43.76743, check: true, name: 'marker_8'});
-  latLngAcutal.push({lat: 5.73803, lng: -1.85176, check: true, name: 'marker_9'});
-  latLngAcutal.push({lat: -6.64781, lng: -77.58631, check: true, name: 'marker_10'});
-  latLngAcutal.push({lat: 34.89952, lng: -118.86206, check: true, name: 'marker_11'});
-  latLngAcutal.push({lat: 58.40359, lng: -96.13035, check: true, name: 'marker_12'});
+  latLngAcutal.push({lat: 32.34188, lng: 129.96099, check: true, name: 'marker_5'});
+  latLngAcutal.push({lat: 38.68364, lng: 142.14383, check: true, name: 'marker_6'});
+  latLngAcutal.push({lat: 46.82084, lng: 145.32773, check: true, name: 'marker_7'});
+  latLngAcutal.push({lat: 53.89372, lng: 157.41155, check: true, name: 'marker_8'});
+  latLngAcutal.push({lat: 63.66249, lng: 170.98911, check: true, name: 'marker_9'});
+  latLngAcutal.push({lat: 64.77069, lng: -160.80509, check: true, name: 'marker_10'});
+  latLngAcutal.push({lat: 64.5688, lng: -133.74215, check: true, name: 'marker_11'});
+  latLngAcutal.push({lat: 56.1372, lng: -97.747, check: true, name: 'marker_12'});
   latLngAcutal.push({lat: 40.7128, lng: -74.0059, check: false, name: 'marker_13'});
 
   var latLngConnection  =   [];
@@ -459,7 +459,7 @@ DAT.Globe = function(container, colorFn) {
     var totalPoints =   0;
 
     var pointGiven  =   false;
-    console.log(latLngConnection);
+    console.log(JSON.stringify(latLngConnection));
 
     latLngAcutal.forEach(function(item, index) {
         if(item.check == false)
@@ -604,7 +604,7 @@ DAT.Globe = function(container, colorFn) {
 
   function onDoubleClick(event) {
       event.preventDefault();
-      
+
       if(latLngConnection.length == 13)
             return false;
 
