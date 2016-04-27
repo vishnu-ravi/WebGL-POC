@@ -554,6 +554,7 @@ DAT.Globe = function(container, colorFn) {
 	}
     hammertime.off('panmove');
     hammertime.off('panend pancancel');
+    hammertime.off('tap');
     container.removeEventListener('mousemove', onMouseMove, false);
     container.removeEventListener('mouseup', onMouseUp, false);
     container.removeEventListener('mouseout', onMouseOut, false);
