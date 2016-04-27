@@ -1,5 +1,5 @@
 {
-    "name": "webgl-globe-poc",
+    "name": "WebGL-POC",
     "version": "0.0.1",
     "description": "POC for WebGl Globe",
     "main": "app.js",
