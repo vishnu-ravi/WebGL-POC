@@ -104,7 +104,7 @@ DAT.Globe = function(container, colorFn) {
 
   var curZoomSpeed  =   0;
   var zoomSpeed     =   50;
-  var hammertime;
+  var hammertime, mc;
   var mouse         =   { x: 0, y: 0 },
       mouseOnDown   =   { x: 0, y: 0 };
   var rotation      =   { x: 0, y: 0 },
@@ -222,11 +222,13 @@ DAT.Globe = function(container, colorFn) {
     container.appendChild(renderer.domElement);
 
     hammertime  =   new Hammer(container, {});
+    mc          =   new Hammer.Manager(container, {});
     hammertime.get('pinch').set({ enable: true });
     hammertime.get('pan').set({ direction: Hammer.DIRECTION_ALL });
 
     hammertime.on('panstart', onMouseDown);
-
+    mc.add( new Hammer.Tap({ event: 'doubletap', taps: 2 }) );
+    mc.on('doubletap', onDoubleClick);
     container.addEventListener('mousedown', onMouseDown, false);
     container.addEventListener('mousewheel', onMouseWheel, false);
     hammertime.on('pinch', function(e) {
@@ -236,7 +238,7 @@ DAT.Globe = function(container, colorFn) {
             delta = -(delta);
         else if(e.scale >= 1 && delta < 1)
             delta = -(delta);
-
+        console.log(delta);
         zoom(delta * 0.3);
     });
 
@@ -541,17 +543,26 @@ DAT.Globe = function(container, colorFn) {
       hammertime.on('panend pancancel', onMouseUp);
       container.addEventListener('mousemove', onMouseMove, false);
       container.addEventListener('mouseup', onMouseUp, false);
-      container.addEventListener('mouseout', onMouseOut, false);
-      container.addEventListener('dblclick', onDoubleClick, false);
 
       var is_touch_event    =   typeof event.changedPointers == 'undefined' ? false : true;
+
+      if(is_touch_event)
+      {
+          mc.off('doubletap');
+        mc.on('doubletap', onDoubleClick);
+        }
+      else
+        container.addEventListener('dblclick', onDoubleClick, false);
+
+      container.addEventListener('mouseout', onMouseOut, false);
+
       mouseOnDown.x     =   is_touch_event ? (- event.changedPointers[0].clientX) : (- event.clientX);
       mouseOnDown.y     =   is_touch_event ? event.changedPointers[0].clientY : event.clientY;
 
       targetOnDown.x    =   target.x;
       targetOnDown.y    =   target.y;
-      
-      hammertime.on('tap', onDoubleClick);
+
+
       container.style.cursor  =   'move';
   }
 
@@ -581,7 +592,7 @@ DAT.Globe = function(container, colorFn) {
 	}
     hammertime.off('panmove');
     hammertime.off('panend pancancel');
-    hammertime.off('tap');
+
     container.removeEventListener('mousemove', onMouseMove, false);
     container.removeEventListener('mouseup', onMouseUp, false);
     container.removeEventListener('mouseout', onMouseOut, false);
@@ -592,6 +603,7 @@ DAT.Globe = function(container, colorFn) {
     container.removeEventListener('mousemove', onMouseMove, false);
     container.removeEventListener('mouseup', onMouseUp, false);
     container.removeEventListener('mouseout', onMouseOut, false);
+    hammertime.off('tap');
   }
 
   function onDoubleClick(event) {
@@ -603,8 +615,21 @@ DAT.Globe = function(container, colorFn) {
       document.getElementById('btn_clear').setAttribute('disabled', false);
       document.getElementById('btn_undo').setAttribute('disabled', false);
 
+      var is_touch_event    =   typeof event.changedPointers == 'undefined' ? false : true;
+      var offsetX, offsetY;
+
+      if(is_touch_event) {
+          var rect  =   event.target.getBoundingClientRect();
+          var offsetX     =   event.changedPointers[0].pageX; - rect.left;
+          var offsetY     =   event.changedPointers[0].pageY; - rect.top;
+      }
+      else {
+          offsetX   =   event.offsetX;
+          offsetY   =   event.offsetY;
+      }
+
       var canvas    =   renderer.domElement;
-      var vector    =   new THREE.Vector3( ( (event.offsetX) / canvas.width ) * 2 - 1, - ( (event.offsetY) / canvas.height) * 2 + 1, 0.5 );
+      var vector    =   new THREE.Vector3( ( (offsetX) / canvas.width ) * 2 - 1, - ( (offsetY) / canvas.height) * 2 + 1, 0.5 );
 
       projector.unprojectVector( vector, camera );
 
