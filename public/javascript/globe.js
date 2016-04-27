@@ -214,7 +214,8 @@ DAT.Globe = function(container, colorFn) {
     container.addEventListener('mousedown', onMouseDown, false);
     container.addEventListener('mousewheel', onMouseWheel, false);
     hammertime.on('pinch', function(e) {
-        zoom(e.scale * 0.8);
+        console.log(e);
+        zoom(e.scale);
     });
 
     document.addEventListener('keydown', onDocumentKeyDown, false);
