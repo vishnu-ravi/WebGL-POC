@@ -232,11 +232,11 @@ DAT.Globe = function(container, colorFn) {
     container.addEventListener('mousedown', onMouseDown, false);
     container.addEventListener('mousewheel', onMouseWheel, false);
     hammertime.on('pinchin', function(e) {
-        zoom(-10);
+        zoom(-20);
     });
 
     hammertime.on('pinchout', function(e) {
-        zoom(10);
+        zoom(20);
     });
 
     document.addEventListener('keydown', onDocumentKeyDown, false);
