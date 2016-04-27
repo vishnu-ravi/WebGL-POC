@@ -26,8 +26,9 @@
 	    <script type="text/javascript" src="//maps.googleapis.com/maps/api/js?sensor=false"></script>
 	    <script>
 
-			if( ! Detector.webgl && typeof window.WebGLRenderingContext == 'undefined') {
+			if( ! Detector.webgl) {
 				Detector.addGetWebGLMessage();
+				document.body.style.backgroundImage	=	'none';
 			}
 			else {
 				var mapZoom		=	3;
