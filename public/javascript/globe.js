@@ -1,4 +1,4 @@
-/**
+ /**
  * dat.globe Javascript WebGL Globe Toolkit
  * http://dataarts.github.com/dat.globe
  *
@@ -71,7 +71,8 @@ DAT.Globe = function(container, colorFn) {
   var iconScene, showIcons  =   true;
   var pathScene, markerScene;
   var vector, worldMesh, mesh, atmosphere, point;
-
+  var loader    =   new THREE.ColladaLoader();
+  var paths =   [], movingPlanes   =   [];
   var latLngSet1    =   [];
   var latLngSet2    =   [];
   var latLngAcutal  =   [];
@@ -377,6 +378,8 @@ DAT.Globe = function(container, colorFn) {
     document.getElementById('btn_submit').setAttribute('disabled', true);
 
     latLngConnection    =   [];
+    movingPlanes        =   [];
+    paths               =   [];
     latLngConnection.push({lat: 1.3521, lng: 103.8198, name: 'marker_1'});
   }
 
@@ -404,6 +407,21 @@ DAT.Globe = function(container, colorFn) {
 
         if(object)
             pathScene.remove(object);
+
+        paths.pop();
+        paths.pop();
+
+        toRemove        =   movingPlanes.pop();
+        object      =   getObjectByName(pathScene, toRemove.name);
+
+        if(object)
+            pathScene.remove(object);
+
+        toRemove        =   movingPlanes.pop();
+        object      =   getObjectByName(pathScene, toRemove.name);
+
+        if(object)
+            pathScene.remove(object);
     }
     else if(length == 13)
     {
@@ -424,6 +442,21 @@ DAT.Globe = function(container, colorFn) {
 
         if(object)
             pathScene.remove(object);
+
+        paths.pop();
+        paths.pop();
+
+        toRemove        =   movingPlanes.pop();
+        object      =   getObjectByName(pathScene, toRemove.name);
+
+        if(object)
+            pathScene.remove(object);
+
+        toRemove        =   movingPlanes.pop();
+        object      =   getObjectByName(pathScene, toRemove.name);
+
+        if(object)
+            pathScene.remove(object);
     }
     else
     {
@@ -435,6 +468,14 @@ DAT.Globe = function(container, colorFn) {
 
         var name        =   'marker_' + (length - 1) + '_marker_' + length;
         object          =   getObjectByName(pathScene, name);
+
+        if(object)
+            pathScene.remove(object);
+
+        paths.pop();
+
+        toRemove        =   movingPlanes.pop();
+        object      =   getObjectByName(pathScene, toRemove.name);
 
         if(object)
             pathScene.remove(object);
@@ -557,7 +598,6 @@ DAT.Globe = function(container, colorFn) {
 
       targetOnDown.x    =   target.x;
       targetOnDown.y    =   target.y;
-
 
       container.style.cursor  =   'move';
   }
@@ -702,6 +742,14 @@ DAT.Globe = function(container, colorFn) {
 
         return new THREE.Vector3(x, y, z);
     }
+    var setMaterial = function(node, material) {
+        node.material = material;
+        if (node.children) {
+            for (var i = 0; i < node.children.length; i++) {
+                setMaterial(node.children[i], material);
+            }
+        }
+    };
 
     function addConnectionLine(start, end, elevation, name) {
         var vF      =    translateCordsToPoint(start.latitude,start.longitude);
@@ -749,6 +797,30 @@ DAT.Globe = function(container, colorFn) {
         cvF.setLength( globeRadius * smoothDist );
 
         var curve   =   new THREE.CubicBezierCurve3( vF, cvF, cvT, vT );
+        loader.load('/models/plane/plane.dae', function(collada) {
+            plane_object = collada.scene;
+
+            plane_object.scale.x    =   plane_object.scale.y    =   plane_object.scale.z = 0.003;
+            plane_object.name   =   'plane_' + name;
+            pathScene.add(plane_object);
+
+            var lat1    =   start.latitude * Math.PI / 180;
+            var lng1    =   start.longitude * Math.PI / 180;
+
+            var lat2    =   end.latitude * Math.PI / 180;
+            var lng2    =   end.longitude * Math.PI / 180;
+
+            var dLon    =   lng1 - lng2;
+            var y       =   Math.sin(dLon) * Math.cos(lat2);
+            var x       =   Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+            var brng    =   Math.atan2(y, x);
+            brng        =   brng * 180 / Math.PI;
+            brng        =   (brng + 360) % 360;
+
+            plane_object.rotation.y = (brng * Math.PI / 180);
+            movingPlanes.push({name: 'plane_' + name, plane: plane_object});
+        });
+
         var path    =   new THREE.Path( curve.getPoints(50) );
 
         var geometry2   =   path.createPointsGeometry(50);
@@ -765,6 +837,8 @@ DAT.Globe = function(container, colorFn) {
         var curveObject =   new THREE.Line(geometry, material2 );
         curveObject.name    =   name;
         pathScene.add(curveObject);
+
+        paths.push({name: name, curve: curve});
     }
 
     function map(x,  in_min,  in_max,  out_min,  out_max) {
@@ -809,6 +883,10 @@ DAT.Globe = function(container, colorFn) {
         requestAnimationFrame(animate);
         render();
     }
+    var t = 0, log = true;
+
+    var binormal    =   new THREE.Vector3();
+	var normal     =   new THREE.Vector3();
 
     function render() {
         zoom(curZoomSpeed);
@@ -828,11 +906,28 @@ DAT.Globe = function(container, colorFn) {
         renderer.render(scene, camera);
 
         if( showIcons ) {
+            for( var i = 0; i < movingPlanes.length; i ++ ) {
+                pt        =   paths[i].curve.getPoint(t);
+                ptAt       =   paths[i].curve.getPoint(0.002);
+                tangent   =   paths[i].curve.getTangent(t);
+
+                var angle =   Math.atan2(tangent.y,tangent.x);
+
+                movingPlanes[i].plane.position.set( pt.x, pt.y, pt.z );
+                plane_object.rotation.x = 1.5;
+                plane_object.rotation.z = 0;
+                /*if(t < 0.3)
+                    plane_object.rotation.z = -0.5;
+                else if(t >= 0.3 && t <= 0.6)
+                    plane_object.rotation.z = 0.1;
+                else if(t > 0.6)
+                    plane_object.rotation.z = 1;*/
+            }
+            t = (t >= 1) ? 0 : t += 0.002;
             renderer.render( iconScene, camera );
             renderer.render(pathScene, camera);
             renderer.render(markerScene, camera);
         }
-
     }
 
     init();
@@ -910,7 +1005,7 @@ DAT.Globe = function(container, colorFn) {
 				.start();
 			sprite.position.set( x, y, z );
             sprite.name =   name;
-			//sprite.scale.x = sprite.scale.y = sprite.scale.z = .95;
+
 			if(typeof is_marker != 'undefined' && is_marker == true)
                 markerScene.add(sprite);
             else

@@ -24,6 +24,7 @@
 	    <script type="text/javascript" src="/javascript/lib/three.min.js"></script>
 	    <script type="text/javascript" src="/javascript/lib/RequestAnimationFrame.js"></script>
 	    <script type="text/javascript" src="/javascript/lib/Detector.js"></script>
+		<script type="text/javascript" src="/javascript/lib/ColladaLoader.js"></script>
 	    <script type="text/javascript" src="/javascript/lib/PatchSphereGeometry.js"></script>
 	    <script type="text/javascript" src="/javascript/lib/Tween.js"></script>
 	    <script type="text/javascript" src="/javascript/globe.js"></script>
@@ -160,7 +161,7 @@
 					e.preventDefault();
 
 					var is_disabled	=	this.getAttribute('disabled');
-					
+
 					if(is_disabled == true)
 						return false;
 
