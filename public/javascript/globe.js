@@ -798,8 +798,15 @@ DAT.Globe = function(container, colorFn) {
 
         var curve   =   new THREE.CubicBezierCurve3( vF, cvF, cvT, vT );
         loader.load('/models/plane/plane.dae', function(collada) {
-            plane_object = collada.scene;
 
+            collada.scene.material  =   new THREE.MeshBasicMaterial({
+                color: 0xffffff
+            });
+
+            plane_object = collada.scene;
+            plane_object.material   =   new THREE.MeshBasicMaterial({
+                color: 0xffffff
+            });
             plane_object.scale.x    =   plane_object.scale.y    =   plane_object.scale.z = 0.003;
             plane_object.name   =   'plane_' + name;
             pathScene.add(plane_object);
