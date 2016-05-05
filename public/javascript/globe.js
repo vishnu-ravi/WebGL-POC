@@ -12,7 +12,16 @@
  */
 
 var DAT   = DAT || {};
+THREE.CanvasTexture = function ( canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy ) {
 
+	THREE.Texture.call( this, canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy );
+
+	this.needsUpdate = true;
+
+};
+
+THREE.CanvasTexture.prototype = Object.create( THREE.Texture.prototype );
+THREE.CanvasTexture.prototype.constructor = THREE.CanvasTexture;
 DAT.Globe = function(container, colorFn) {
     colorFn = colorFn || function(x) {
         var c = new THREE.Color();
@@ -20,52 +29,7 @@ DAT.Globe = function(container, colorFn) {
         return c;
     };
 
-    var Shaders = {
-        'earth': {
-            uniforms: {
-                'texture': { type: 't', value: 0, texture: null }
-            },
-            vertexShader: [
-                'varying vec3 vNormal;',
-                'varying vec2 vUv;',
-                'void main() {',
-                    'gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );',
-                    'vNormal = normalize( normalMatrix * normal );',
-                    'vUv = uv;',
-                '}'
-            ].join('\n'),
-            fragmentShader: [
-                'uniform sampler2D texture;',
-                'varying vec3 vNormal;',
-                'varying vec2 vUv;',
-                'void main() {',
-                    'vec3 diffuse = texture2D( texture, vUv ).xyz;',
-                    'float intensity = 1.05 - dot( vNormal, vec3( 0.0, 0.0, 1.0 ) );',
-                    'vec3 atmosphere = vec3( 1.0, 1.0, 1.0 ) * pow( intensity, 3.0 );',
-                    'gl_FragColor = vec4( diffuse + atmosphere, 1.0 );',
-                '}'
-            ].join('\n')
-        },
-        'atmosphere' : {
-            uniforms: {},
-            vertexShader: [
-                'varying vec3 vNormal;',
-                'void main() {',
-                    'vNormal = normalize( normalMatrix * normal );',
-                    'gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );',
-                '}'
-            ].join('\n'),
-            fragmentShader: [
-                'varying vec3 vNormal;',
-                'void main() {',
-                    'float intensity = pow( 0.8 - dot( vNormal, vec3( 0, 0, 1.0 ) ), 12.0 );',
-                    'gl_FragColor = vec4( 1.0, 1.0, 1.0, 1.0 ) * intensity;',
-                '}'
-            ].join('\n')
-        }
-  };
-
-  var camera, scene, renderer, w, h, globe3d
+  var camera, scene, renderer, w, h, globe3d, shadow_plane;
   var globeRadius   =   150;
   var vec3_origin   =   new THREE.Vector3(0,0,0);
   var iconScene, showIcons  =   true;
@@ -140,73 +104,101 @@ DAT.Globe = function(container, colorFn) {
     camera.position.z   =   distance;
     camera.target       =   new THREE.Vector3( 0, 0, 0 );
 
+
     vector  =   new THREE.Vector3();
     scene   =   new THREE.Scene();
 
     iconScene       =   new THREE.Scene();
     markerScene     =   new THREE.Scene();
     pathScene       =   new THREE.Scene();
-    scene.add(camera);
+
     projector       =   new THREE.Projector();
-    var geometry    =   new THREE.PatchSphereGeometry(globeRadius, 40, 30);//, 0, 2 * Math.PI, -Math.PI / 2, Math.PI );
+    var geometry    =   new THREE.SphereGeometry(globeRadius, 40, 30);//, 0, 2 * Math.PI, -Math.PI / 2, Math.PI );
 
-    for(var i = 0, l = geometry.faceVertexUvs[0].length; i < l; i ++ ) {
-        for(var j = 0, jl = geometry.faceVertexUvs[0][i].length; j < jl; j ++) {
-            var uv  =   geometry.faceVertexUvs[0][i][j];
-            var a   =   uv.v * Math.PI - Math.PI / 2;
-            a       =   Math.sin(a);
-            uv.v    =   0.5 - Math.log( ( 1 + a ) / ( 1 - a ) ) / (4 * Math.PI);
-            uv.v    =   1 - uv.v;
-        }
-    }
+    geometry.mergeVertices();
+    var l = geometry.vertices.length;
+    var waves   =   [];
+    for (var i=0; i<l; i++){
+		// get each vertex
+		var v = geometry.vertices[i];
 
-    shader      =   Shaders['earth'];
-    uniforms    =   THREE.UniformsUtils.clone(shader.uniforms);
-    texture     =   new THREE.Texture( mapCanvas );
+		// store some data associated to it
+		waves.push({y:v.y,
+			 x:v.x,
+			 z:v.z,
+			 // a random angle
+			 ang:Math.random()*Math.PI*2,
+			 // a random distance
+			 amp:2 + Math.random()*0.8,
+			 // a random speed between 0.016 and 0.048 radians / frame
+			 speed:0.016 + Math.random()*0.032
+		});
+	};
 
-    texture.minFilter   =   THREE.LinearMipMapLinearFilter;
-    texture.magFilter   =   THREE.LinearMipMapLinearFilter;
-    texture.wrapS       =   THREE.ClampToEdgeWrapping;
-    texture.wrapT       =   THREE.ClampToEdgeWrapping;
-    texture.needsUpdate =   true;
-
-    uniforms['texture'].texture =   texture;
-
-    material    =   new THREE.ShaderMaterial({
-        uniforms: uniforms,
-        vertexShader: shader.vertexShader,
-        fragmentShader: shader.fragmentShader
-    });
+    var texture =   THREE.ImageUtils.loadTexture('image/world.jpg');
+    texture.needsUpdate = true;
+    material    =   new THREE.MeshBasicMaterial({map: texture});
 
     worldMesh   =   new THREE.Mesh(geometry, material);
-    worldMesh.rotation.y    +=  Math.PI / 2;
+
+    worldMesh.rotation.y    +=  (Math.PI / 2) + 1.6;
     worldMesh.matrixAutoUpdate  =   false;
     worldMesh.updateMatrix();
+
+    var verts = worldMesh.geometry.vertices;
+	var l = verts.length;
+
+	for (var i=0; i<l; i++){
+		var v     =   verts[i];
+
+		// get the data associated to it
+		var vprops    =   waves[i];
+
+		// update the position of the vertex
+		v.x = vprops.x + Math.cos(vprops.ang)*vprops.amp;
+		v.y = vprops.y + Math.sin(vprops.ang)*vprops.amp;
+
+		// increment the angle for the next frame
+		vprops.ang += vprops.speed;
+
+	}
+
+	worldMesh.geometry.verticesNeedUpdate=true;
+
     globe3d =   worldMesh;
     scene.add(worldMesh);
 
-    geometry    =   new THREE.SphereGeometry(globeRadius, 40, 30 );
-    shader      =   Shaders['atmosphere'];
-    uniforms    =   THREE.UniformsUtils.clone(shader.uniforms);
+    //Shadow
+    var canvas = document.createElement( 'canvas' );
+	canvas.width = 300;
+	canvas.height = 300;
 
-    material    =   new THREE.ShaderMaterial({
-        uniforms: uniforms,
-        vertexShader: shader.vertexShader,
-        fragmentShader: shader.fragmentShader
-    });
+	var context = canvas.getContext( '2d' );
+	var gradient = context.createRadialGradient(
+		canvas.width / 2,
+		canvas.height / 2,
+		0,
+		canvas.width / 2,
+		canvas.height / 2,
+		canvas.width / 2
+	);
+	gradient.addColorStop( 0.1, 'rgba(210,210,210,1)' );
+	gradient.addColorStop( 1, 'rgba(255,255,255,1)' );
 
-    geometry    =   new THREE.CubeGeometry(0.75, 0.75, 1, 1, 1, 1, null, false, {
-        px: true,
-        nx: true, py: true, ny: true, pz: false, nz: true
-    });
+	context.fillStyle = gradient;
+	context.fillRect( 0, 0, canvas.width, canvas.height );
 
-    for (var i = 0; i < geometry.vertices.length; i++) {
-        var vertex  =   geometry.vertices[i];
-        vertex.position.z   +=  0.5;
-    }
+	var shadow_texture = new THREE.CanvasTexture( canvas );
 
-    point       =   new THREE.Mesh(geometry);
+    var plane_geo   =   new THREE.PlaneBufferGeometry(300, 300);
+    var plane_mat   =   new THREE.MeshBasicMaterial( {map: shadow_texture, overdraw: 0.5} );
+    shadow_plane    =   new THREE.Mesh(plane_geo, plane_mat);
 
+    scene.add(camera);
+    camera.add( shadow_plane );
+    shadow_plane.position.set(0, -220, -800);
+    shadow_plane.scale.set(0.5, 0.5, 0.5);
+    shadow_plane.rotation.x   =   -Math.PI / 4;
     if ( webglAvailable() ) {
 		renderer    =   new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
 	} else {
@@ -214,7 +206,7 @@ DAT.Globe = function(container, colorFn) {
 	}
 
     renderer.autoClear  =   false;
-    renderer.setClearColorHex(0x000000, 0.0);
+    renderer.setClearColor(0xffffff, 0.0);
     renderer.setSize(w, h);
     renderer.sortObjects    =   true;
 
@@ -256,110 +248,6 @@ DAT.Globe = function(container, colorFn) {
     container.addEventListener('mouseout', function() {
         overRenderer = false;
     }, false);
-  }
-
-  addData = function(data, opts) {
-    var lat, lng, size, color, i, step, colorFnWrapper;
-
-    opts.animated       =   opts.animated || false;
-    this.is_animated    =   opts.animated;
-    opts.format         =   opts.format || 'magnitude'; // other option is 'legend'
-
-    if(opts.format === 'magnitude') {
-        step    =   3;
-        colorFnWrapper  =   function(data, i) { return colorFn(data[i+2]); }
-    } else if (opts.format === 'legend') {
-        step    =   4;
-        colorFnWrapper  =   function(data, i) { return colorFn(data[i+3]); }
-    } else {
-        throw('error: format not supported: ' + opts.format);
-    }
-
-    if (opts.animated) {
-        if (this._baseGeometry === undefined) {
-            this._baseGeometry  = new THREE.Geometry();
-
-            for (i = 0; i < data.length; i += step) {
-                lat     =   data[i];
-                lng     =   data[i + 1];
-                //size  =   data[i + 2];
-                color   =   colorFnWrapper(data,i);
-                size    =   0;
-                addPoint(lat, lng, size, color, this._baseGeometry);
-            }
-        }
-
-        if(this._morphTargetId === undefined)
-            this._morphTargetId = 0;
-        else
-            this._morphTargetId +=  1;
-
-        opts.name = opts.name || 'morphTarget' + this._morphTargetId;
-    }
-
-    var subgeo  =   new THREE.Geometry();
-
-    for(i = 0; i < data.length; i += step) {
-        lat     =   data[i];
-        lng     =   data[i + 1];
-        color   =   colorFnWrapper(data,i);
-        size    =   data[i + 2];
-        size    =   size * globeRadius;
-        addPoint(lat, lng, size, color, subgeo);
-    }
-
-    if (opts.animated)
-        this._baseGeometry.morphTargets.push({'name': opts.name, vertices: subgeo.vertices});
-    else
-        this._baseGeometry  = subgeo;
-  };
-
-  function createPoints() {
-    if (this._baseGeometry !== undefined) {
-        if (this.is_animated === false) {
-            this.points =   new THREE.Mesh(this._baseGeometry, new THREE.MeshBasicMaterial({
-                color: 0xffffff,
-                vertexColors: THREE.FaceColors,
-                morphTargets: false
-            }));
-        } else {
-            if (this._baseGeometry.morphTargets.length < 8) {
-                var padding =   8 - this._baseGeometry.morphTargets.length;
-                for(var i=0; i<=padding; i++) {
-                    this._baseGeometry.morphTargets.push({'name': 'morphPadding'+i, vertices: this._baseGeometry.vertices});
-                }
-            }
-
-            this.points = new THREE.Mesh(this._baseGeometry, new THREE.MeshBasicMaterial({
-                color: 0xffffff,
-                vertexColors: THREE.FaceColors,
-                morphTargets: true
-            }));
-        }
-
-        scene.add(this.points);
-    }
-  }
-
-  function addPoint(lat, lng, size, color, subgeo) {
-    var phi     =   (90 - lat) * Math.PI / 180;
-    var theta   =   (180 - lng) * Math.PI / 180;
-
-    point.position.x    =   globeRadius * Math.sin(phi) * Math.cos(theta);
-    point.position.y    =   globeRadius * Math.cos(phi);
-    point.position.z    =   globeRadius * Math.sin(phi) * Math.sin(theta);
-
-    point.lookAt(worldMesh.position);
-
-    point.scale.z       =   -size;
-    point.updateMatrix();
-
-    var i;
-    for (i = 0; i < point.geometry.faces.length; i++) {
-        point.geometry.faces[i].color = color;
-    }
-
-    GeometryUtils.merge(subgeo, point);
   }
 
   function clearAll() {
@@ -669,14 +557,14 @@ DAT.Globe = function(container, colorFn) {
 
       projector.unprojectVector( vector, camera );
 
-      var ray   =   new THREE.Ray(camera.position, vector.subSelf(camera.position).normalize());
+      var ray   =   new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
 
       var intersects    =   ray.intersectObject(globe3d);
 
       if (intersects.length > 0) {
             object  =   intersects[0];
 
-            r       =   object.object.boundRadius;
+            r       =   globeRadius;
             x       =   object.point.x;
             y       =   object.point.y;
             z       =   object.point.z;
@@ -686,6 +574,7 @@ DAT.Globe = function(container, colorFn) {
 
             lat     =   Math.round(lat * 100000) / 100000;
             lon     =   Math.round(lon * 100000) / 100000;
+
             var index   =   latLngConnection.length + 1;
             var name    =   'marker_' + index;
             latLngConnection.push({lat: lat, lng: lon, name: name, check: true});
@@ -742,14 +631,6 @@ DAT.Globe = function(container, colorFn) {
 
         return new THREE.Vector3(x, y, z);
     }
-    var setMaterial = function(node, material) {
-        node.material = material;
-        if (node.children) {
-            for (var i = 0; i < node.children.length; i++) {
-                setMaterial(node.children[i], material);
-            }
-        }
-    };
 
     function addConnectionLine(start, end, elevation, name) {
         var vF      =    translateCordsToPoint(start.latitude,start.longitude);
@@ -798,20 +679,13 @@ DAT.Globe = function(container, colorFn) {
 
         var curve   =   new THREE.CubicBezierCurve3( vF, cvF, cvT, vT );
         loader.load('/models/plane/plane.dae', function(collada) {
-
-            collada.scene.material  =   new THREE.MeshBasicMaterial({
-                color: 0xffffff
-            });
-
             plane_object = collada.scene;
-            plane_object.material   =   new THREE.MeshBasicMaterial({
-                color: 0xffffff
-            });
+
             plane_object.scale.x    =   plane_object.scale.y    =   plane_object.scale.z = 0.003;
             plane_object.name   =   'plane_' + name;
             pathScene.add(plane_object);
 
-            var lat1    =   start.latitude * Math.PI / 180;
+            /*var lat1    =   start.latitude * Math.PI / 180;
             var lng1    =   start.longitude * Math.PI / 180;
 
             var lat2    =   end.latitude * Math.PI / 180;
@@ -822,10 +696,9 @@ DAT.Globe = function(container, colorFn) {
             var x       =   Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
             var brng    =   Math.atan2(y, x);
             brng        =   brng * 180 / Math.PI;
-            brng        =   (brng + 360) % 360;
+            brng        =   (brng + 360) % 360;*/
 
-            plane_object.rotation.y = (brng * Math.PI / 180);
-            movingPlanes.push({name: 'plane_' + name, plane: plane_object});
+            movingPlanes.push({name: 'plane_' + name, plane: plane_object, destination: vT});
         });
 
         var path    =   new THREE.Path( curve.getPoints(50) );
@@ -835,13 +708,13 @@ DAT.Globe = function(container, colorFn) {
         var geometry    =   new THREE.Geometry();
 
         curve.getPoints(50).forEach(function(item, index) {
-            geometry.vertices.push( new THREE.Vertex(item));
+            geometry.vertices.push(item);
         });
 
-        var material2   =   new THREE.LineBasicMaterial( { color : 0xff0000 } );
-
+        var material2   =   new THREE.LineBasicMaterial({color: 0xff0000});
         // Create the final Object3d to add to the scene
         var curveObject =   new THREE.Line(geometry, material2 );
+
         curveObject.name    =   name;
         pathScene.add(curveObject);
 
@@ -892,9 +765,6 @@ DAT.Globe = function(container, colorFn) {
     }
     var t = 0, log = true;
 
-    var binormal    =   new THREE.Vector3();
-	var normal     =   new THREE.Vector3();
-
     function render() {
         zoom(curZoomSpeed);
 
@@ -910,28 +780,22 @@ DAT.Globe = function(container, colorFn) {
         vector.copy(camera.position);
 
         renderer.clear();
+
         renderer.render(scene, camera);
 
         if( showIcons ) {
             for( var i = 0; i < movingPlanes.length; i ++ ) {
-                pt        =   paths[i].curve.getPoint(t);
-                ptAt       =   paths[i].curve.getPoint(0.002);
-                tangent   =   paths[i].curve.getTangent(t);
-
-                var angle =   Math.atan2(tangent.y,tangent.x);
+                pt      =   paths[i].curve.getPoint(t);
+                var to_look =   ((t + 0.2) < 1)
+                                    ? paths[i].curve.getPoint(t + 0.2)
+                                    : movingPlanes[i].destination;
 
                 movingPlanes[i].plane.position.set( pt.x, pt.y, pt.z );
-                plane_object.rotation.x = 1.5;
-                plane_object.rotation.z = 0;
-                /*if(t < 0.3)
-                    plane_object.rotation.z = -0.5;
-                else if(t >= 0.3 && t <= 0.6)
-                    plane_object.rotation.z = 0.1;
-                else if(t > 0.6)
-                    plane_object.rotation.z = 1;*/
+                movingPlanes[i].plane.lookAt(to_look);
+                movingPlanes[i].plane.rotation.y += Math.PI;
             }
             t = (t >= 1) ? 0 : t += 0.002;
-            renderer.render( iconScene, camera );
+            renderer.render(iconScene, camera);
             renderer.render(pathScene, camera);
             renderer.render(markerScene, camera);
         }
@@ -939,36 +803,6 @@ DAT.Globe = function(container, colorFn) {
 
     init();
     this.animate = animate;
-
-    this.__defineGetter__('time', function() {
-        return this._time || 0;
-    });
-
-    this.__defineSetter__('time', function(t) {
-        return;
-        var validMorphs =   [];
-        var morphDict   =   this.points.morphTargetDictionary;
-
-        for(var k in morphDict) {
-            if(k.indexOf('morphPadding') < 0) {
-                validMorphs.push(morphDict[k]);
-            }
-        }
-        validMorphs.sort();
-        var l   =   validMorphs.length-1;
-        var scaledt =   t * l + 1;
-        var index   =   Math.floor(scaledt);
-        for (i=0;i<validMorphs.length;i++) {
-            this.points.morphTargetInfluences[validMorphs[i]]   =   0;
-        }
-        var lastIndex   =   index - 1;
-        var leftover    =   scaledt - index;
-        if (lastIndex >= 0) {
-            this.points.morphTargetInfluences[lastIndex]    =   1 - leftover;
-        }
-        this.points.morphTargetInfluences[index]    =   leftover;
-        this._time  =   t;
-    });
 
 	function moveToPoint( lat, lng ) {
 
@@ -984,7 +818,7 @@ DAT.Globe = function(container, colorFn) {
 		var phi   =   (90 - lat) * Math.PI / 180;
 		var theta =   (180 - lng) * Math.PI / 180;
 
-		var r     =   globeRadius + 10;
+		var r     =   globeRadius + 2;
 
 		var x     =   r * Math.sin(phi) * Math.cos(theta);
 		var y     =   r * Math.cos(phi);
@@ -993,11 +827,9 @@ DAT.Globe = function(container, colorFn) {
 		id    =   id.trim();
 
 		if( id != '' ) {
-            sprite = new THREE.Sprite( {
-                map: THREE.ImageUtils.loadTexture( '/image/' + id + ".png" ),
-                useScreenCoordinates: false,
-                affectedByDistance: false
-            } );
+            var map =   THREE.ImageUtils.loadTexture('/image/' + id + '.png');
+            var material    =   new THREE.SpriteMaterial({ map: map});
+            sprite = new THREE.Sprite(material);
 			sprite.opacity   =   1;
 			sprite.scale.x   =   sprite.scale.y  =   sprite.scale.z  =   0;
 			/*var opacityTween = new TWEEN
@@ -1008,7 +840,7 @@ DAT.Globe = function(container, colorFn) {
 			var sizeTween = new TWEEN
 				.Tween( sprite.scale )
 				.easing(TWEEN.Easing.Back.EaseOut)
-				.to( { x: 1, y: 1, z: 1 }, 500)
+				.to( { x: 10, y: 10, z: 10 }, 500)
 				.start();
 			sprite.position.set( x, y, z );
             sprite.name =   name;
@@ -1020,11 +852,8 @@ DAT.Globe = function(container, colorFn) {
 		}
 	}
 
-    this.addData        =   addData;
-    this.createPoints   =   createPoints;
     this.renderer       =   renderer;
     this.scene          =   scene;
-    this.texture        =   texture;
     this.moveTo         =   moveToPoint;
     this.addSprite      =   addSprite;
     this.takeSnapshot   =   takeSnapshot;
@@ -1045,126 +874,11 @@ DAT.Globe = function(container, colorFn) {
     return this;
 };
 
-THREE.MercatorSphere    =   function ( radius, segmentsWidth, segmentsHeight ) {
 
-    THREE.Geometry.call( this );
-
-	var radius =   radius || 50,
-	gridX  =   segmentsWidth || 8,
-	gridY  =   segmentsHeight || 6;
-
-	var i, j, pi   =   Math.PI;
-	var iHor   =   Math.max( 3, gridX );
-	var iVer   =   Math.max( 2, gridY );
-	var aVtc   =   [];
-
-	for ( j = 0; j < ( iVer + 1 ) ; j++ ) {
-		var fRad1 =   j / iVer;
-		var fZ    =   radius * Math.cos( fRad1 * pi );
-		var fRds  =   radius * Math.sin( fRad1 * pi );
-		var aRow  =   [];
-		var oVtx  =   0;
-
-		for ( i = 0; i < iHor; i++ ) {
-			var fRad2    =   2 * i / iHor;
-			var fX       =   fRds * Math.sin( fRad2 * pi );
-			var fY       =   fRds * Math.cos( fRad2 * pi );
-
-			if ( !( ( j == 0 || j == iVer ) && i > 0 ) )
-				oVtx    =   this.vertices.push( new THREE.Vertex( new THREE.Vector3( fY, fZ, fX ) ) ) - 1;
-
-			aRow.push( oVtx );
-		}
-
-		aVtc.push(aRow);
-	}
-
-	var n1, n2, n3, iVerNum    =   aVtc.length;
-
-	for ( j = 0; j < iVerNum; j++ ) {
-		var iHorNum   =   aVtc[ j ].length;
-
-		if ( j > 0 ) {
-
-			for ( i = 0; i < iHorNum; i++ ) {
-
-				var bEnd    =   i == ( iHorNum - 1 );
-				var aP1     =   aVtc[ j ][ bEnd ? 0 : i + 1 ];
-				var aP2     =   aVtc[ j ][ ( bEnd ? iHorNum - 1 : i ) ];
-				var aP3     =   aVtc[ j - 1 ][ ( bEnd ? iHorNum - 1 : i ) ];
-				var aP4     =   aVtc[ j - 1 ][ bEnd ? 0 : i + 1 ];
-
-				var fJ0     =   j / ( iVerNum - 1 );
-				var fJ1     =   ( j - 1 ) / ( iVerNum - 1 );
-				var fI0     =   ( i + 1 ) / iHorNum;
-				var fI1     =   i / iHorNum;
-
-				var theta;
-				var max     =   45.501 * Math.PI / 180;
-
-				theta       =   ( ( j / iVerNum ) * Math.PI - Math.PI / 2 );
-				theta       =   theta.clamp( -max, max );
-				fJ0         =   1 - lat2v( theta );
-				theta       =   ( ( ( j - 1 ) / iVerNum ) * Math.PI - Math.PI / 2 );
-				theta       =   theta.clamp( -max, max );
-				fJ1         =   1 - lat2v( theta );
-
-				var aP1uv   =   new THREE.UV( 1 - fI0, fJ0 );
-				var aP2uv   =   new THREE.UV( 1 - fI1, fJ0 );
-				var aP3uv   =   new THREE.UV( 1 - fI1, fJ1 );
-				var aP4uv   =   new THREE.UV( 1 - fI0, fJ1 );
-
-				if ( j < ( aVtc.length - 1 ) ) {
-					n1      =   this.vertices[ aP1 ].position.clone();
-					n2      =   this.vertices[ aP2 ].position.clone();
-					n3      =   this.vertices[ aP3 ].position.clone();
-					n1.normalize();
-					n2.normalize();
-					n3.normalize();
-
-					this.faces.push( new THREE.Face3( aP1, aP2, aP3, [ new THREE.Vector3( n1.x, n1.y, n1.z ), new THREE.Vector3( n2.x, n2.y, n2.z ), new THREE.Vector3( n3.x, n3.y, n3.z ) ] ) );
-
-					this.faceVertexUvs[ 0 ].push( [ aP1uv, aP2uv, aP3uv ] );
-				}
-
-				if ( j > 1 ) {
-					n1      =   this.vertices[aP1].position.clone();
-					n2      =   this.vertices[aP3].position.clone();
-					n3      =   this.vertices[aP4].position.clone();
-					n1.normalize();
-					n2.normalize();
-					n3.normalize();
-
-					this.faces.push( new THREE.Face3( aP1, aP3, aP4, [ new THREE.Vector3( n1.x, n1.y, n1.z ), new THREE.Vector3( n2.x, n2.y, n2.z ), new THREE.Vector3( n3.x, n3.y, n3.z ) ] ) );
-
-					this.faceVertexUvs[ 0 ].push( [ aP1uv, aP3uv, aP4uv ] );
-				}
-			}
-		}
-	}
-
-	this.computeCentroids();
-	this.computeFaceNormals();
-	this.computeVertexNormals();
-
-	this.boundingSphere    =   { radius: radius };
-
-};
-
-THREE.MercatorSphere.prototype  =   new THREE.Geometry();
-THREE.MercatorSphere.prototype.constructor  =   THREE.MercatorSphere;
 
 Math.sec    =   function(){
     return 1 / Math.cos(this);
 };
-
-function y2lat(a) { return 180/Math.PI * (2 * Math.atan(Math.exp(a*Math.PI/180)) - Math.PI/2); }
-function lat2y(a) { return 180/Math.PI * Math.log(Math.tan(Math.PI/4+a*(Math.PI/180)/2)); }
-
-function lat2v(a){
-	a  =   ath.sin(a);
-	return 0.5 - Math.log((1+a)/(1-a))/(4*Math.PI)
-}
 
 Number.prototype.clamp = function(min, max) {
     return Math.min(Math.max(this, min), max);
