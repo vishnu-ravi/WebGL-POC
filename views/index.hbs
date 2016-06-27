@@ -7,102 +7,50 @@
 		<meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
 	</head>
 	<body>
-	    <div class="controlBox">
-		  <button id="btn_clear" disabled="true">Clear</button>
-		  <button id="btn_undo" disabled="true">Undo</button>
-	      <button id="btn_submit" disabled="true">Submit</button>
-	    </div>
-			<div id="container"></div>
-	    <div id="result_container" style="display:none;">
-			<div class="innerWrap">
-				<h2>Your Result</h2>
-				<p>Percentage of Accuracy <span id="result"></span></p>
-				<button id="btn_continue">Continue</button>
-			</div>
-	    </div>
+        <div id="block_intro" class="blockIntro">
+            <div>
+                <h3>Select Any of the unlocked destinations to proceed to mapping the route</h3>
+                <ul class="destinations">
+                    <li data-plain_id="BR56">BR56</li>
+                    <li data-plain_id="BR2">BR2</li>
+                    <li data-plain_id="BR52">BR52</li>
+                    <li data-plain_id="BR32">BR32</li>
+                    <li data-plain_id="BR18">BR18</li>
+                    <li data-plain_id="BR26">BR26</li>
+                    <li data-plain_id="BR36">BR36</li>
+                    <li data-plain_id="BR10">BR10</li>
+                </ul>
+            </div>
+        </div>
+        <div id="block_map" class="blockMap" style="display:none; height: 100%">
+            <div id="block_start" class="controlBox">
+                <button id="btn_start">Start Mapping</button>
+            </div>
+            <div id="block_control" class="controlBox" style="display:none;">
+    		  <button id="btn_clear" disabled="true">Clear</button>
+    		  <button id="btn_undo" disabled="true">Undo</button>
+    	      <button id="btn_submit" disabled="true">Submit</button>
+    	    </div>
+    		<div id="container" style="height:100%"></div>
+    	    <div id="result_container" style="display:none;">
+    			<div class="innerWrap">
+    				<h2>Your Result</h2>
+    				<p>Percentage of Accuracy <span id="result"></span></p>
+    				<button id="btn_continue">Continue</button>
+    			</div>
+    	    </div>
+        </div>
+        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCLKfMxUppaI3J_D5cKSknfKvZYj_FMOOk" async defer></script>
+        <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
 		<script type="text/javascript" src="/javascript/lib/hammer.min.js"></script>
 	    <script type="text/javascript" src="/javascript/lib/three.min.js"></script>
+	    <script type="text/javascript" src="/javascript/lib/LensFlare.js"></script>
 	    <script type="text/javascript" src="/javascript/lib/RequestAnimationFrame.js"></script>
 	    <script type="text/javascript" src="/javascript/lib/Detector.js"></script>
 		<script type="text/javascript" src="/javascript/lib/ColladaLoader.js"></script>
 		<script type="text/javascript" src="/javascript/lib/Quaternion.js"></script>
 	    <script type="text/javascript" src="/javascript/lib/Tween.js"></script>
-	    <script type="text/javascript" src="/javascript/globe.js"></script>
-	    <script>
-
-			if( ! Detector.webgl) {
-				Detector.addGetWebGLMessage();
-				document.body.style.backgroundImage	=	'none';
-			}
-			else {
-				var mapZoom		=	3;
-				var mapCanvas	=	document.createElement('canvas');
-				var mapCtx		=	mapCanvas.getContext('2d');
-
-				var container	=	document.getElementById('container');
-				var globe		=	new DAT.Globe(container);
-
-				var i, tweens	=	[];
-
-				TWEEN.start();
-				start();
-				addMarkers();
-				bindEvents();
-			}
-
-			function start() {
-				globe.animate();
-			}
-
-			function addMarkers() {
-				globe.moveTo(1.3521, 103.8198);
-				globe.addSprite('marker', 1.3521, 103.8198, true, 'marker_1');  //Singapore
-				globe.addSprite('marker', 25.0330, 121.5654, true, 'marker_4'); //Taipei
-				globe.addSprite('marker', 40.7128, -74.0059, true, 'marker_13');  //New York
-			}
-
-			function bindEvents() {
-				document.getElementById('btn_clear').onclick  = function(e) {
-					e.preventDefault();
-
-					var is_disabled	=	this.getAttribute('disabled');
-
-					if(is_disabled == true)
-						return false;
-
-					globe.clearAll();
-				};
-
-				document.getElementById('btn_undo').onclick  = function(e) {
-					e.preventDefault();
-
-					var is_disabled	=	this.getAttribute('disabled');
-
-					if(is_disabled == true)
-						return false;
-
-					globe.undo();
-				};
-
-				document.getElementById('btn_submit').onclick   = function(e) {
-					e.preventDefault();
-
-					var is_disabled	=	this.getAttribute('disabled');
-
-					if(is_disabled == true)
-						return false;
-
-					globe.submitRoute();
-				};
-
-				document.getElementById('btn_continue').onclick 	=	function(e) {
-					e.preventDefault();
-
-					document.getElementById('result_container').style.display = 'none';
-					document.getElementById('result').innerHTML =	'';
-					globe.clearAll();
-				};
-			}
-	    </script>
+        <script type="text/javascript" src="/javascript/globe.js"></script>
+	    <script type="text/javascript" src="/javascript/index.js"></script>
 	</body>
 </html>

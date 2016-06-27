@@ -10,6 +10,11 @@ app.set('view engine', 'hbs');
 app.route('/').get(function (req, res)
 {
     res.render('index');
+});
+
+app.route('/test').get(function (req, res)
+{
+    res.render('test2');
 })
 
 var port    =   process.env.PORT || 3000;
