@@ -138,7 +138,7 @@ DAT.Globe = function(container, colorFn) {
      * @param  {json} details json containing the data of destination and departure points
      * @return {boolean}  returns true
      */
-    function setEndPoints(details) {        
+    function setEndPoints(details) {
         endpoints.departure.lat     =   details.departure.lat;
         endpoints.departure.lng     =   details.departure.lng;
 
@@ -240,7 +240,7 @@ DAT.Globe = function(container, colorFn) {
     	};*/
 
         //Loads the world Image
-        var texture =   THREE.ImageUtils.loadTexture('image/world_small.jpg');
+        var texture =   THREE.ImageUtils.loadTexture('image/world_1.jpg');
         texture.needsUpdate = true;
         material    =   new THREE.MeshPhongMaterial({map: texture});
 
@@ -1066,20 +1066,19 @@ DAT.Globe = function(container, colorFn) {
      *
      * @return {type}  description
      */
-    var stats = new Stats();
+    /*var stats = new Stats();
     stats.showPanel(0);
     stats.showPanel(1); // 0: fps, 1: ms, 2: mb, 3+: custom
     stats.showPanel(2);
     stats.dom.style.top =   '50px';
-    document.body.appendChild(stats.dom);
+    document.body.appendChild(stats.dom);*/
     function animate() {
         requestAnimationFrame(animate);
-        stats.begin();
+        //stats.begin();
 
         render();
 
-        stats.end();
-
+        //stats.end();
     }
     var t = 0, log = true, pathIndex    =   0;
 
