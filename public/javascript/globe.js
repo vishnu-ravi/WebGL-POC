@@ -11,6 +11,27 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
+Math.sec    =   function(){
+    return 1 / Math.cos(this);
+};
+
+Number.prototype.clamp = function(min, max) {
+    return Math.min(Math.max(this, min), max);
+};
+
+Number.prototype.toRadians    =   function() {
+  return this * Math.PI / 180;
+};
+
+Number.prototype.toDegree    =   function() {
+  return this * 180 / Math.PI;
+};
+
+String.prototype.trim   =   function() {
+    var str = this.replace(/^\s*([\S\s]*)\b\s*$/, '$1');
+    return str.replace(/(\r\n|\n|\r)/gm,"");
+}
+
 var DAT   = DAT || {};
 THREE.CanvasTexture = function ( canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy ) {
 
@@ -50,28 +71,11 @@ DAT.Globe = function(container, colorFn) {
             'lng': null
         }
     };
-    var latLngAcutal  =   [];
-    latLngAcutal.push({lat: 1.3521, lng: 103.8198, check: false, name: 'marker_1'});
-    latLngAcutal.push({lat: 11.44369, lng: 104.39086, check: true, name: 'marker_2'});
-    latLngAcutal.push({lat: 24.67631, lng: 113.98106, check: true, name: 'marker_3'});
-    latLngAcutal.push({lat: 25.0330, lng: 121.5654, check: false, name: 'marker_4'});
-    latLngAcutal.push({lat: 32.34188, lng: 129.96099, check: true, name: 'marker_5'});
-    latLngAcutal.push({lat: 38.68364, lng: 142.14383, check: true, name: 'marker_6'});
-    latLngAcutal.push({lat: 46.82084, lng: 145.32773, check: true, name: 'marker_7'});
-    latLngAcutal.push({lat: 53.89372, lng: 157.41155, check: true, name: 'marker_8'});
-    latLngAcutal.push({lat: 63.66249, lng: 170.98911, check: true, name: 'marker_9'});
-    latLngAcutal.push({lat: 64.77069, lng: -160.80509, check: true, name: 'marker_10'});
-    latLngAcutal.push({lat: 64.5688, lng: -133.74215, check: true, name: 'marker_11'});
-    latLngAcutal.push({lat: 56.1372, lng: -97.747, check: true, name: 'marker_12'});
-    latLngAcutal.push({lat: 40.7128, lng: -74.0059, check: false, name: 'marker_13'});
 
     var latLngConnection    =   [];
     var totalMarker         =   0;
 
     var overRenderer;
-
-    var imgDir        =   '';
-
     var curZoomSpeed  =   0;
     var zoomSpeed     =   50;
     var hammertime, mc;
@@ -86,6 +90,13 @@ DAT.Globe = function(container, colorFn) {
     var textureFlare0, textureFlare1, textureFlare3;
 
     var texture;
+
+
+    /**
+     * webglAvailable - Checks wheather Webgl supported on the browser
+     *
+     * @return {boolean}  returns true or false
+     */
     function webglAvailable() {
     	try {
     		var canvas    =   document.createElement( 'canvas' );
@@ -98,7 +109,45 @@ DAT.Globe = function(container, colorFn) {
     	}
     }
 
+    /**
+     * midPoint - Used to get the
+     *
+     * @param  {float} lat1 Latitude 1
+     * @param  {float} lon1 longitude 1
+     * @param  {float} lat2 Latitude 2
+     * @param  {float} lon2 longitude 2
+     * @return {object}      Mid point lat & lon
+     */
+    function midPoint(lat1, lon1, lat2, lon2) {
+        var dLon  =   (lon2 - lon1).toRadians();
+        lat1      =   lat1.toRadians();
+        lat2      =   lat2.toRadians();
+        lon1      =   lon1.toRadians();
+
+        var bx    =   Math.cos(lat2) * Math.cos(dLon);
+        var by    =   Math.cos(lat2) * Math.sin(dLon);
+        var lat3  =   Math.atan2(Math.sin(lat1) + Math.sin(lat2), Math.sqrt((Math.cos(lat1) + bx) * (Math.cos(lat1) + bx) + by * by));
+        var lon3  =   lon1 + Math.atan2(by, Math.cos(lat1) + bx);
+
+        return {lat: lat3.toDegree(), lng: lon3.toDegree()};
+    }
+
+    /**
+     * setEndPoints - set the marker for the departure and destinations points
+     *
+     * @param  {json} details json containing the data of destination and departure points
+     * @return {boolean}  returns true
+     */
     function setEndPoints(details) {
+        addSprite('marker_orange', details.departure.lat, details.departure.lng, 'marker_1', false);
+        addSprite('marker_orange', details.destination.lat, details.destination.lng, 'marker_7', false);
+        var start   =   {latitude: details.departure.lat, longitude: details.departure.lng};
+        var end     =   {latitude: details.destination.lat, longitude: details.destination.lng};
+
+        addConnectionLine(start, end, 500, 'start');
+        var mid_point    =   midPoint(details.departure.lat, details.departure.lng, details.destination.lat, details.destination.lng);
+        moveTo(mid_point.lat, mid_point.lng);
+
         endpoints.departure.lat     =   details.departure.lat;
         endpoints.departure.lng     =   details.departure.lng;
 
@@ -110,6 +159,12 @@ DAT.Globe = function(container, colorFn) {
         latLngConnection.push({lat: details.departure.lat, lng: details.departure.lng, name: 'marker_1'});
     }
 
+
+    /**
+     * init - Initilize the Webgl setup the globe
+     *
+     * @return {type}  description
+     */
     function init() {
         container.style.color   =   '#5a99bc';
         container.style.font    =   '13px/20px Arial, sans-serif';
@@ -124,27 +179,36 @@ DAT.Globe = function(container, colorFn) {
 
         vector  =   new THREE.Vector3();
         scene   =   new THREE.Scene();
+
+
+        /**
+         * Add a fog to the scene
+         */
         scene.fog   = new THREE.Fog(0xffffff, 1, 10000);
     	scene.fog.color.setHSL( 0.6, 0, 1 );
 
+        /**
+         * Adds the Hemisphere Light to the Scene
+         */
         hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
     	hemiLight.color.setHSL( 0.6, 1, 0.6 );
     	hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
     	hemiLight.position.set( 0, 800, 0 );
     	camera.add(hemiLight);
 
+        /**
+         * Adds the Directional Light to the scene
+         */
         dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
     	dirLight.color.setHSL( 0.1, 1, 0.95 );
-    	dirLight.position.set(-400, 200, 600);
+    	dirLight.position.set(-1200, 400, 800);
     	dirLight.position.multiplyScalar( 50 );
     	camera.add(dirLight);
-        dirLight.castShadow = true;
-
-    	dirLight.shadowMapWidth = 2048;
-    	dirLight.shadowMapHeight = 2048;
-
+        dirLight.castShadow     =   true;
+    	dirLight.shadowMapWidth    =   2048;
+    	dirLight.shadowMapHeight   =   2048;
+        window.dirLight         =   dirLight;
     	var d = 50;
-
     	dirLight.shadowCameraLeft = -d;
     	dirLight.shadowCameraRight = d;
     	dirLight.shadowCameraTop = d;
@@ -152,17 +216,6 @@ DAT.Globe = function(container, colorFn) {
 
     	dirLight.shadowCameraFar = 3500;
     	dirLight.shadowBias = -0.0001;
-
-        // lens flares
-		textureFlare0 = THREE.ImageUtils.loadTexture("/image/lensFlare/lensflare0.png");
-        textureFlare0.needsUpdate = true;
-		textureFlare2 = THREE.ImageUtils.loadTexture("/image/lensFlare/lensflare2.png");
-        textureFlare0.needsUpdate = true;
-		textureFlare3 = THREE.ImageUtils.loadTexture("/image/lensFlare/lensflare3.png");
-        textureFlare3.needsUpdate = true;
-		addLight( 0.55, 0.9, 0.5, 5000, 0, -1000 );
-		addLight( 0.08, 0.8, 0.5,    0, 0, -1000 );
-		addLight( 0.995, 0.5, 0.9, 5000, 5000, -1000 );
 
         iconScene       =   new THREE.Scene();
         markerScene     =   new THREE.Scene();
@@ -172,6 +225,10 @@ DAT.Globe = function(container, colorFn) {
         var geometry    =   new THREE.SphereGeometry(globeRadius, 40, 30);//, 0, 2 * Math.PI, -Math.PI / 2, Math.PI );
 
         geometry.mergeVertices();
+
+        /**
+         *   This commented part of code make bumps on the sphere, might be used in future
+         */
         /*var l = geometry.vertices.length;
         var waves   =   [];
         for (var i=0; i<l; i++){
@@ -191,9 +248,10 @@ DAT.Globe = function(container, colorFn) {
     		});
     	};*/
 
-        var texture =   THREE.ImageUtils.loadTexture('image/world.jpg');
+        //Loads the world Image
+        var texture =   THREE.ImageUtils.loadTexture('image/world_small.jpg');
         texture.needsUpdate = true;
-        material    =   new THREE.MeshLambertMaterial({map: texture});
+        material    =   new THREE.MeshPhongMaterial({map: texture});
 
         worldMesh   =   new THREE.Mesh(geometry, material);
 
@@ -201,7 +259,27 @@ DAT.Globe = function(container, colorFn) {
         worldMesh.matrixAutoUpdate  =   false;
         worldMesh.updateMatrix();
         worldMesh.castShadow    =   true;
-        //Code for Bumps on spehere
+
+        /**
+         *   A outter glow added to the globe
+         */
+        var customMaterial = new THREE.ShaderMaterial(
+        {
+            uniforms: {  },
+            vertexShader:   document.getElementById('vertexShader').textContent,
+            fragmentShader: document.getElementById('fragmentShader').textContent,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending,
+            transparent: true
+        });
+
+        var ballGeometry = new THREE.SphereGeometry( (globeRadius + 20), 40, 30 );
+        var ball = new THREE.Mesh( ballGeometry, customMaterial );
+        scene.add( ball );
+
+        /**
+         *   This commented part of code make bumps on the sphere, might be used in future
+         */
         /*var verts = worldMesh.geometry.vertices;
     	var l = verts.length;
 
@@ -225,6 +303,10 @@ DAT.Globe = function(container, colorFn) {
         globe3d =   worldMesh;
         scene.add(worldMesh);
 
+
+        /**
+         *  This commented part of the code adds a shadow under the globe. Might be used in future
+         */
         /*//Shadow
         var canvas = document.createElement( 'canvas' );
     	canvas.width = 300;
@@ -257,7 +339,7 @@ DAT.Globe = function(container, colorFn) {
 
         //Background Image
         // Load the background texture
-        var texture = THREE.ImageUtils.loadTexture('image/space.jpg');
+        var texture = THREE.ImageUtils.loadTexture('image/map-BG.jpg');
         var backgroundMesh = new THREE.Mesh(
             new THREE.PlaneBufferGeometry(2, 2, 0),
             new THREE.MeshBasicMaterial({
@@ -272,10 +354,36 @@ DAT.Globe = function(container, colorFn) {
        backgroundScene.add(backgroundCamera);
        backgroundScene.add(backgroundMesh);
 
+
+       /**
+        * This commented part of code creates a lensFlare effect, might be used in future
+        */
+       //lensFlare
+       /*var lensFlare_loader = new THREE.TextureLoader();
+
+       lensFlare_loader.load('image/lensFlare/lensflare0.png', function(texture) {
+           textureFlare0   =   texture;
+           textureFlare0.needsUpdate = true;
+           lensFlare_loader.load('image/lensFlare/lensflare2.png', function(texture) {
+               textureFlare2   =   texture;
+               textureFlare0.needsUpdate = true;
+               lensFlare_loader.load('image/lensFlare/lensflare3.png', function(texture) {
+                   textureFlare3   =   texture;
+                   textureFlare3.needsUpdate = true;
+                   console.log('add light');
+
+                   addLight( 0.08, 0.8, 0.5, 0, 0, -5000);
+               });
+           });
+       });*/
+
+       // create custom material from the shader code above
+	//   that is within specially labeled script tags
+
        scene.add(camera);
 
        if ( webglAvailable() ) {
-           renderer    =   new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
+           renderer    =   new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true, alpha: true});
        } else {
            renderer = new THREE.CanvasRenderer();
        }
@@ -301,8 +409,10 @@ DAT.Globe = function(container, colorFn) {
 
         container.appendChild(renderer.domElement);
 
-        //addStars();
 
+        /**
+         * Touch events for mobile
+         */
         hammertime  =   new Hammer(container, {});
         mc          =   new Hammer.Manager(container, {});
         hammertime.get('pinch').set({ enable: true });
@@ -338,6 +448,12 @@ DAT.Globe = function(container, colorFn) {
             overRenderer = false;
         }, false);
 
+        /**
+         * loader - Add the Airoplane 3D Object into the scene
+         *
+         * @param  {type} '/models/plane/plane.dae' 3d Object
+         * @return {type}                           description
+         */
         loader.load('/models/plane/plane.dae', function(collada) {
             plane_object = collada.scene;
 
@@ -345,64 +461,46 @@ DAT.Globe = function(container, colorFn) {
             plane_object.name   =   'plane';
             pathScene.add(plane_object);
 
-            /*var lat1    =   start.latitude * Math.PI / 180;
-            var lng1    =   start.longitude * Math.PI / 180;
-
-            var lat2    =   end.latitude * Math.PI / 180;
-            var lng2    =   end.longitude * Math.PI / 180;
-
-            var dLon    =   lng1 - lng2;
-            var y       =   Math.sin(dLon) * Math.cos(lat2);
-            var x       =   Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
-            var brng    =   Math.atan2(y, x);
-            brng        =   brng * 180 / Math.PI;
-            brng        =   (brng + 360) % 360;*/
-
+            window.plane    =   plane_object;
             movingPlanes.push({name: 'plane', plane: plane_object});
         });
     }
 
-    function addLight( h, s, l, x, y, z ) {
-			var light = new THREE.PointLight( 0xffffff, 1.5, 2000 );
-			light.color.setHSL( h, s, l );
-			light.position.set( x, y, z );
-			camera.add( light );
-			var flareColor = new THREE.Color( 0xffffff );
-			flareColor.setHSL( h, s, l + 0.5 );
-			var lensFlare = new THREE.LensFlare( textureFlare0, 700, 0.0, THREE.AdditiveBlending, flareColor );
-			lensFlare.add( textureFlare2, 512, 0.0, THREE.AdditiveBlending );
-			lensFlare.add( textureFlare2, 512, 0.0, THREE.AdditiveBlending );
-			lensFlare.add( textureFlare2, 512, 0.0, THREE.AdditiveBlending );
-			lensFlare.add( textureFlare3, 60, 0.6, THREE.AdditiveBlending );
-			lensFlare.add( textureFlare3, 70, 0.7, THREE.AdditiveBlending );
-			lensFlare.add( textureFlare3, 120, 0.9, THREE.AdditiveBlending );
-			lensFlare.add( textureFlare3, 70, 1.0, THREE.AdditiveBlending );
-			lensFlare.customUpdateCallback = lensFlareUpdateCallback;
-            
-			lensFlare.position.copy( light.position );
-			camera.add( lensFlare );
-		}
+    /**
+     * addLensFlare - Adds the LensFlare effect to the scene
+     *
+     * @param  {type} h Color cordinates
+     * @param  {type} s Color cordinates
+     * @param  {type} l Color cordinates
+     * @param  {type} x Position
+     * @param  {type} y Position
+     * @param  {type} z Position
+     * @return {type}   description
+     */
+    function addLensFlare( h, s, l, x, y, z ) {
+		var light = new THREE.PointLight( 0xffffff, 10000, 20000 );
+		light.color.setHSL( h, s, l );
+		light.position.set( x, y, z );
+		camera.add( light );
+		var flareColor = new THREE.Color( 0xffffff );
+		flareColor.setHSL( h, s, l + 0.5 );
+		var lensFlare = new THREE.LensFlare( textureFlare0, 700, 0.0, THREE.AdditiveBlending, flareColor );
+		lensFlare.add( textureFlare2, 512, 0.0, THREE.AdditiveBlending );
+		lensFlare.add( textureFlare2, 512, 0.0, THREE.AdditiveBlending );
+		lensFlare.add( textureFlare2, 512, 0.0, THREE.AdditiveBlending );
+		lensFlare.add( textureFlare3, 60, 0.6, THREE.AdditiveBlending );
+		lensFlare.add( textureFlare3, 70, 0.7, THREE.AdditiveBlending );
+		lensFlare.add( textureFlare3, 120, 0.9, THREE.AdditiveBlending );
+		lensFlare.add( textureFlare3, 70, 1.0, THREE.AdditiveBlending );
+		lensFlare.position.copy( light.position );
+		camera.add( lensFlare );
+	}
 
-        function lensFlareUpdateCallback( object ) {
-            var f, fl = this.lensFlares.length;
-              var flare;
-              var vecX = -this.positionScreen.x * 2;
-              var vecY = -this.positionScreen.y * 2;
-              var size = object.size ? object.size : 16000;
-
-              var camDistance = camera.position.length();
-
-              for( f = 0; f < fl; f ++ ) {
-                flare = this.lensFlares[ f ];
-
-                flare.x = this.positionScreen.x + vecX * flare.distance;
-                flare.y = this.positionScreen.y + vecY * flare.distance;
-
-                flare.scale = size / camDistance;
-                flare.rotation = 0;
-              }
-		}
-
+    /**
+     * addStars - Add Star field around the globe currently it is not used, we are using static background image
+     *
+     * @return {type}  description
+     */
     function addStars() {
         var material = new THREE.PointCloudMaterial({
           size: 4,
@@ -425,6 +523,11 @@ DAT.Globe = function(container, colorFn) {
         scene.add(pointCloud);
     }
 
+    /**
+     * clearAll - Clears all the Markers added by user, Connection Lines and Moving Plane
+     *
+     * @return {type}  description
+     */
     function clearAll() {
         for(i = markerScene.children.length - 1; i >= 0; i --) {
             obj =   markerScene.children[i];
@@ -449,6 +552,11 @@ DAT.Globe = function(container, colorFn) {
         is_backwards    =   false;
     }
 
+    /**
+     * undo - Clears the last user action
+     *
+     * @return {type}  description
+     */
     function undo() {
         var length      =   latLngConnection.length;
 
@@ -512,6 +620,11 @@ DAT.Globe = function(container, colorFn) {
         document.getElementById('btn_submit').setAttribute('disabled', true);
     }
 
+    /**
+     * submitRoute - This is not fully done, this should be moved to Server Side.
+     *
+     * @return {type}  description
+     */
     function submitRoute()
     {
         var length  =   latLngConnection.length;
@@ -569,14 +682,15 @@ DAT.Globe = function(container, colorFn) {
         document.getElementById('result_container').style.display = 'block';
     }
 
-    Number.prototype.toRadians    =   function() {
-      return this * Math.PI / 180;
-    };
-
-    Number.prototype.toDegree    =   function() {
-      return this * 180 / Math.PI;
-    };
-
+    /**
+     * distanceBetweenTwoPoints - used to find the distance between two latitudes and longitudes
+     *
+     * @param  {float} lat1 Latitude 1
+     * @param  {float} lon1 longitude 1
+     * @param  {float} lat2 Latitude 2
+     * @param  {float} lon2 longitude 2
+     * @return {float}      distance
+     */
     function distanceBetweenTwoPoints(lat1, lon1, lat2, lon2) {
         var R   =   6371000; // metres
         var φ1  =   lat1.toRadians();
@@ -592,20 +706,16 @@ DAT.Globe = function(container, colorFn) {
         return d    =   R * c;
     };
 
-    function midPoint(lat1, lon1, lat2, lon2) {
-        var dLon  =   (lon2 - lon1).toRadians();
-        lat1      =   lat1.toRadians();
-        lat2      =   lat2.toRadians();
-        lon1      =   lon1.toRadians();
 
-        var bx    =   Math.cos(lat2) * Math.cos(dLon);
-        var by    =   Math.cos(lat2) * Math.sin(dLon);
-        var lat3  =   Math.atan2(Math.sin(lat1) + Math.sin(lat2), Math.sqrt((Math.cos(lat1) + bx) * (Math.cos(lat1) + bx) + by * by));
-        var lon3  =   lon1 + Math.atan2(by, Math.cos(lat1) + bx);
 
-        return {lat: lat3.toDegree(), lng: lon3.toDegree()};
-    };
 
+    /**
+     * getObjectByName - Used to get a Object by unique name
+     *
+     * @param  {object} var_scene Scene
+     * @param  {string} name      name to be find
+     * @return {object}           return object if found else return boolean false
+     */
     function getObjectByName(var_scene, name) {
         for(i = var_scene.children.length - 1; i >= 0; i --) {
             obj =   var_scene.children[i];
@@ -616,6 +726,12 @@ DAT.Globe = function(container, colorFn) {
         return false;
     }
 
+    /**
+     * onMouseDown - Used to rotate the globe
+     *
+     * @param  {type} event event object from browser
+     * @return {type}       description
+     */
     function onMouseDown(event) {
         var el  =   document.querySelectorAll( '.hide' );
         for( var j = 0; j < el.length; j++ ) {
@@ -642,6 +758,12 @@ DAT.Globe = function(container, colorFn) {
         container.style.cursor  =   'move';
     }
 
+    /**
+     * onMouseMove - Used to rotate the globe
+     *
+     * @param  {type} event event object from browser
+     * @return {type}       description
+     */
     function onMouseMove(event) {
         var is_touch_event    =   typeof event.changedPointers == 'undefined' ? false : true;
 
@@ -655,17 +777,15 @@ DAT.Globe = function(container, colorFn) {
 
         target.y    =   target.y > PI_HALF ? PI_HALF : target.y;
         target.y    =   target.y < - PI_HALF ? - PI_HALF : target.y;
-
-        /*var deltaX = mouse.x - mouseOnDown.x,
-            deltaY = mouse.y - mouseOnDown.y;
-        mouseOnDown.x = mouse.x;
-        mouseOnDown.y = mouse.y;
-        console.log(deltaX);
-        console.log(deltaY);
-        worldMesh.rotation.y  +=  deltaX / 100;
-        worldMesh.rotation.x  +=  deltaY / 100;*/
     }
 
+
+    /**
+     * onMouseUp - Used to rotate the globe
+     *
+     * @param  {type} event event object from browser
+     * @return {type}       description
+     */
     function onMouseUp(event) {
         var is_touch_event    =   typeof event.changedPointer == 'undefined' ? false : true;
     	var el     =   document.querySelectorAll( '.hide' );
@@ -682,6 +802,12 @@ DAT.Globe = function(container, colorFn) {
         container.style.cursor  =   'auto';
     }
 
+    /**
+     * onMouseOut - Used to rotate the globe
+     *
+     * @param  {type} event event object from browser
+     * @return {type}       description
+     */
     function onMouseOut(event) {
         container.removeEventListener('mousemove', onMouseMove, false);
         container.removeEventListener('mouseup', onMouseUp, false);
@@ -689,6 +815,12 @@ DAT.Globe = function(container, colorFn) {
         hammertime.off('tap');
     }
 
+    /**
+     * onDoubleClick - Used to rotate the globe
+     *
+     * @param  {type} event event object from browser
+     * @return {type}       description
+     */
     function onDoubleClick(event) {
         event.preventDefault();
 
@@ -740,7 +872,7 @@ DAT.Globe = function(container, colorFn) {
             latLngConnection.push({lat: lat, lng: lon, name: name, check: true});
 
             //moveToPoint(lat, lon);
-            addSprite('marker_white', lat, lon, true, name, true);
+            addSprite('marker_white', lat, lon, name, true);
 
             var tmp         =   latLngConnection.slice(0);
             var last_two    =   tmp.slice(-2);
@@ -769,6 +901,13 @@ DAT.Globe = function(container, colorFn) {
         }
     }
 
+    /**
+     * translateCordsToPoint - Translates the Lat and Lon to x, y, z Vector Points
+     *
+     * @param  {float} lat Latitude
+     * @param  {float} lng Longitude
+     * @return {Vector3}     Vector3 Points
+     */
     function translateCordsToPoint(lat, lng) {
         var phi     =   (90 - lat) * Math.PI / 180;
         var theta   =   (180 - lng) * Math.PI / 180;
@@ -780,6 +919,15 @@ DAT.Globe = function(container, colorFn) {
         return new THREE.Vector3(x, y, z);
     }
 
+    /**
+     * addConnectionLine - Adds the Curve line between two Latitudes and Longtudes
+     *
+     * @param  {object} start     latitude and longitude object
+     * @param  {object} end       latitude and longitude object
+     * @param  {int} elevation height of the curve
+     * @param  {string} name      Unique name for the Connection line
+     * @return {type}           no ruturn
+     */
     function addConnectionLine(start, end, elevation, name) {
         var vF      =   translateCordsToPoint(start.latitude,start.longitude);
         var vT      =   translateCordsToPoint(end.latitude, end.longitude);
@@ -847,10 +995,26 @@ DAT.Globe = function(container, colorFn) {
         paths.push({name: name, curve: curve, destination: vT, departure: vF});
     }
 
+    /**
+     * map - a Mathmetical function used to provide the smoot curve
+     *
+     * @param  {int} x       description
+     * @param  {int} in_min  description
+     * @param  {int} in_max  description
+     * @param  {int} out_min description
+     * @param  {int} out_max description
+     * @return {int}         description
+     */
     function map(x,  in_min,  in_max,  out_min,  out_max) {
         return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
     }
 
+    /**
+     * onMouseWheel - Used to zoom the globe on mouse wheel
+     *
+     * @param  {object} event event object from browser
+     * @return {boolean}       description
+     */
     function onMouseWheel(event) {
         event.preventDefault();
 
@@ -860,6 +1024,12 @@ DAT.Globe = function(container, colorFn) {
         return false;
     }
 
+    /**
+     * onDocumentKeyDown - Used to Zoom globe on keypress
+     *
+     * @param  {object} event event object from browser
+     * @return {type}   return nothing
+     */
     function onDocumentKeyDown(event) {
         switch (event.keyCode) {
             case 38:
@@ -873,23 +1043,59 @@ DAT.Globe = function(container, colorFn) {
         }
     }
 
-    function onWindowResize( event ) {
+    /**
+     * onWindowResize - adjust the canvas on windows risize
+     *
+     * @param  {type} event event object from browser
+     * @return {type}       return nothing
+     */
+    function onWindowResize(event) {
         camera.aspect   =   window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize( window.innerWidth, window.innerHeight );
     }
 
+    /**
+     * zoom - set the zoom value based on input from mousewheel, keypress or pinch
+     *
+     * @param  {type} delta description
+     * @return {type}       description
+     */
     function zoom(delta) {
         distanceTarget  -=   delta;
         distanceTarget  =   distanceTarget > 1000 ? 1000 : distanceTarget;
         distanceTarget  =   distanceTarget < 300 ? 300 : distanceTarget;
     }
 
+
+    /**
+     * animate - this uses requestAnimationFrame for animation
+     *
+     * @return {type}  description
+     */
+    var stats = new Stats();
+    stats.showPanel(0);
+    stats.showPanel(1); // 0: fps, 1: ms, 2: mb, 3+: custom
+    stats.showPanel(2);
+    stats.dom.style.top =   '50px';
+    document.body.appendChild(stats.dom);
     function animate() {
         requestAnimationFrame(animate);
+        stats.begin();
+
         render();
+
+        stats.end();
+
     }
     var t = 0, log = true, pathIndex    =   0;
+
+    /**
+     * render - it is called inside animation
+     *
+     * @return {type}  description
+     */
+
 
     function render() {
         zoom(curZoomSpeed);
@@ -901,6 +1107,7 @@ DAT.Globe = function(container, colorFn) {
         camera.position.x   =   distance * Math.sin(rotation.x) * Math.cos(rotation.y);
         camera.position.y   =   distance * Math.sin(rotation.y);
         camera.position.z   =   distance * Math.cos(rotation.x) * Math.cos(rotation.y);
+
         camera.lookAt( camera.target );
 
         vector.copy(camera.position);
@@ -930,6 +1137,7 @@ DAT.Globe = function(container, colorFn) {
                     movingPlanes[0].plane.visible   =   true;
                     movingPlanes[0].plane.position.set(pt.x, pt.y, pt.z);
                     movingPlanes[0].plane.lookAt(to_look);
+
                     movingPlanes[0].plane.rotation.y    +=  Math.PI;
                     movingPlanes[0].plane.rotation.z    +=  (Math.PI * 2);
                 }
@@ -976,17 +1184,32 @@ DAT.Globe = function(container, colorFn) {
     init();
     this.animate = animate;
 
+	/**
+	 * moveToPoint - rotates the globle to face the given latitude & longitude
+	 *
+	 * @param  {float} lat description
+	 * @param  {float} lng description
+	 * @return {type}     return nothing
+	 */
 	function moveToPoint( lat, lng ) {
-
 		var phi   =   lat * Math.PI / 180;
 		var theta =   lng * Math.PI / 180;
 
 		target.x  =   - Math.PI / 2 + theta;
 		target.y  =   phi;
-
 	}
 
-	function addSprite( id, lat, lng, panTo, name, is_marker) {
+	/**
+	 * addSprite - adds the Marker to the Globe
+	 *
+	 * @param  {string} id        marker name
+	 * @param  {float} lat       description
+	 * @param  {float} lng       description
+	 * @param  {string} name      unique name for the marker
+	 * @param  {boolean} is_marker description
+	 * @return {type}           description
+	 */
+	function addSprite(id, lat, lng, name, is_marker) {
 		var phi   =   (90 - lat) * Math.PI / 180;
 		var theta =   (180 - lng) * Math.PI / 180;
 
@@ -1004,6 +1227,10 @@ DAT.Globe = function(container, colorFn) {
             sprite = new THREE.Sprite(material);
 			sprite.opacity   =   1;
 			sprite.scale.x   =   sprite.scale.y  =   sprite.scale.z  =   0;
+
+			/**
+			 * To add animation to the Marker, currently not using to get better performance
+			 */
 			/*var opacityTween = new TWEEN
 				.Tween( sprite )
 				.easing(TWEEN.Easing.Elastic.EaseInOut)
@@ -1024,6 +1251,11 @@ DAT.Globe = function(container, colorFn) {
 		}
 	}
 
+    /**
+     * enableClick - activates the user actions on globe
+     *
+     * @return {type}  description
+     */
     function enableClick() {
         DAT.Globe.enableClick   =   true;
     }
@@ -1042,29 +1274,25 @@ DAT.Globe = function(container, colorFn) {
     this.enableClick    =   enableClick;
     this.setEndPoints   =   setEndPoints;
 
+    /**
+     * takeSnapshot - to take the Snapshot of the canvas, currently not using
+     *
+     * @return {type}  description
+     */
     function takeSnapshot(){
         var data    =   renderer.domElement.toDataURL();
         window.open( data, 'WebGL Route' );
     }
 
+
+    /**
+     * toggleIcons - to toggle the visibility of marker, plane, connection lines on globe
+     *
+     * @return {type}  description
+     */
     function toggleIcons() {
         showIcons   =   !showIcons;
     }
 
     return this;
 };
-
-
-
-Math.sec    =   function(){
-    return 1 / Math.cos(this);
-};
-
-Number.prototype.clamp = function(min, max) {
-    return Math.min(Math.max(this, min), max);
-};
-
-String.prototype.trim   =   function() {
-	var str = this.replace(/^\s*([\S\s]*)\b\s*$/, '$1');
-	return str.replace(/(\r\n|\n|\r)/gm,"");
-}

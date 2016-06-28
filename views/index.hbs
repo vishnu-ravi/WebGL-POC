@@ -6,7 +6,7 @@
         <link href="/style/index.css" type="text/css" rel="stylesheet" />
 		<meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
 	</head>
-	<body>
+	<body class="loading">
         <div id="block_intro" class="blockIntro">
             <div>
                 <h3>Select Any of the unlocked destinations to proceed to mapping the route</h3>
@@ -44,12 +44,31 @@
         <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
 		<script type="text/javascript" src="/javascript/lib/hammer.min.js"></script>
 	    <script type="text/javascript" src="/javascript/lib/three.min.js"></script>
-	    <script type="text/javascript" src="/javascript/lib/LensFlare.js"></script>
 	    <script type="text/javascript" src="/javascript/lib/RequestAnimationFrame.js"></script>
 	    <script type="text/javascript" src="/javascript/lib/Detector.js"></script>
 		<script type="text/javascript" src="/javascript/lib/ColladaLoader.js"></script>
 		<script type="text/javascript" src="/javascript/lib/Quaternion.js"></script>
 	    <script type="text/javascript" src="/javascript/lib/Tween.js"></script>
+	    <script type="text/javascript" src="/javascript/lib/Stats.js"></script>
+
+        <script id="vertexShader" type="x-shader/x-vertex">
+            varying vec3 vNormal;
+            void main()
+            {
+                vNormal = normalize( normalMatrix * normal );
+                gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 0.9 );
+            }
+        </script>
+
+        <!-- fragment shader a.k.a. pixel shader -->
+        <script id="fragmentShader" type="x-shader/x-vertex">
+            varying vec3 vNormal;
+            void main()
+            {
+            	float intensity    =   pow( 0.3 - dot( vNormal, vec3( 0.0, 0.0, 1.0 ) ), 2.0 );
+                gl_FragColor       =   vec4( 1.0, 1.0, 1.0, 1.0 ) * intensity;
+            }
+        </script>
         <script type="text/javascript" src="/javascript/globe.js"></script>
 	    <script type="text/javascript" src="/javascript/index.js"></script>
 	</body>

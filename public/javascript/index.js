@@ -1,9 +1,9 @@
 Number.prototype.toRadians    =   function() {
-  return this * Math.PI / 180;
+    return this * Math.PI / 180;
 };
 
 Number.prototype.toDegree    =   function() {
-  return this * 180 / Math.PI;
+    return this * 180 / Math.PI;
 };
 
 var Map =   function () {
@@ -12,6 +12,10 @@ var Map =   function () {
     this.map    =   null;
     this.totalMarker    =   0;
     this.plain_id   =   null;
+
+    /**
+     * This Data shoudl be retrieved from DB
+     */
     this.destinations   =   {
         'BR56': { //Chicago
             'departure': {lat: 25.0676, lng: 121.5527},
@@ -62,11 +66,16 @@ var Map =   function () {
 
 Map.prototype.init  =   function() {
 
-    document.body.style.background	=	'none';
+    $('body').removeClass('loading');
 
     this.bindIntroEvents();
 };
 
+/**
+ * Map.prototype.bindIntroEvents - Bind the all the events related to Destination Selection
+ *
+ * @return {type}  description
+ */
 Map.prototype.bindIntroEvents   =   function() {
     var _this   =   this;
 
@@ -76,16 +85,26 @@ Map.prototype.bindIntroEvents   =   function() {
 
         $('#block_intro').fadeOut(1000, 'swing', function() {
             $('#block_map').fadeIn(1000, 'swing', function () {
-                _this.initGMap(plain_id);
-                /*if( ! Detector.webgl)
+                //_this.initGMap(plain_id);
+
+                /**
+                 * Here Webgl support is checked, if webgl not supported Goolgle Map Initilized
+                 */
+                if( ! Detector.webgl)
                     _this.initGMap(plain_id);
                 else
-                    _this.initWebGL(plain_id);*/
+                    _this.initWebGL(plain_id);
             });
         });
     })
 };
 
+/**
+ * initGMap function - Initilize Google Maps
+ *
+ * @param  {string} plain_id Unique string
+ * @return {type}          description
+ */
 Map.prototype.initGMap      =   function (plain_id) {
     // Specify features and elements to define styles.
     var styleArray = [{"featureType":"water","elementType":"geometry","stylers":[{"visibility":"on"},{"color":"#aee2e0"}]},{"featureType":"landscape","elementType":"geometry.fill","stylers":[{"color":"#abce83"}]},{"featureType":"poi","elementType":"geometry.fill","stylers":[{"color":"#769E72"}]},{"featureType":"poi","elementType":"labels.text.fill","stylers":[{"color":"#7B8758"}]},{"featureType":"poi","elementType":"labels.text.stroke","stylers":[{"color":"#EBF4A4"}]},{"featureType":"poi.park","elementType":"geometry","stylers":[{"visibility":"simplified"},{"color":"#8dab68"}]},{"featureType":"road","elementType":"geometry.fill","stylers":[{"visibility":"simplified"}]},{"featureType":"road","elementType":"labels.text.fill","stylers":[{"color":"#5B5B3F"}]},{"featureType":"road","elementType":"labels.text.stroke","stylers":[{"color":"#ABCE83"}]},{"featureType":"road","elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"featureType":"road.local","elementType":"geometry","stylers":[{"color":"#A4C67D"}]},{"featureType":"road.arterial","elementType":"geometry","stylers":[{"color":"#9BBF72"}]},{"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#EBF4A4"}]},{"featureType":"transit","stylers":[{"visibility":"off"}]},{"featureType":"administrative","elementType":"geometry.stroke","stylers":[{"visibility":"on"},{"color":"#87ae79"}]},{"featureType":"administrative","elementType":"geometry.fill","stylers":[{"color":"#7f2200"},{"visibility":"off"}]},{"featureType":"administrative","elementType":"labels.text.stroke","stylers":[{"color":"#ffffff"},{"visibility":"on"},{"weight":4.1}]},{"featureType":"administrative","elementType":"labels.text.fill","stylers":[{"color":"#495421"}]},{"featureType":"administrative.neighborhood","elementType":"labels","stylers":[{"visibility":"off"}]}];
@@ -161,6 +180,11 @@ Map.prototype.initGMap      =   function (plain_id) {
     this.bindGMapEvents();
 };
 
+/**
+ * Map.prototype.bindGMapEvents - Binds all the events related to Google Maps
+ *
+ * @return {type}  description
+ */
 Map.prototype.bindGMapEvents    =   function() {
     var _this   =   this;
 
@@ -212,6 +236,14 @@ Map.prototype.bindGMapEvents    =   function() {
     });
 };
 
+/**
+ * Map.prototype.addMarker - Adds Marker
+ *
+ * @param  {type} location    description
+ * @param  {type} image       description
+ * @param  {type} is_editable description
+ * @return {type}             description
+ */
 Map.prototype.addMarker =   function(location, image, is_editable) {
     var markerImage;
     var size, point1, point2;
@@ -240,6 +272,11 @@ Map.prototype.addMarker =   function(location, image, is_editable) {
         this.markerObjects.push(marker);
 };
 
+/**
+ * Map.prototype.addConnectionLine - Adds the connection line between two Lat & lng on GMap
+ *
+ * @return {type}  description
+ */
 Map.prototype.addConnectionLine =   function() {
     var tmp         =   this.latLngConnection.slice(0);
     var last_two    =   tmp.slice(-2);
@@ -261,20 +298,12 @@ Map.prototype.addConnectionLine =   function() {
     this.connectionObjects.push(flightPath);
 };
 
-Map.prototype.midPoint  =   function(lat1, lon1, lat2, lon2) {
-    var dLon  =   (lon2 - lon1).toRadians();
-    lat1      =   lat1.toRadians();
-    lat2      =   lat2.toRadians();
-    lon1      =   lon1.toRadians();
-
-    var bx    =   Math.cos(lat2) * Math.cos(dLon);
-    var by    =   Math.cos(lat2) * Math.sin(dLon);
-    var lat3  =   Math.atan2(Math.sin(lat1) + Math.sin(lat2), Math.sqrt((Math.cos(lat1) + bx) * (Math.cos(lat1) + bx) + by * by));
-    var lon3  =   lon1 + Math.atan2(by, Math.cos(lat1) + bx);
-
-    return {lat: lat3.toDegree(), lng: lon3.toDegree()};
-}
-
+/**
+ * Map.prototype.initWebGL - Initilize Webgl
+ *
+ * @param  {string} plain_id Unique Plane Id
+ * @return {type}          description
+ */
 Map.prototype.initWebGL   =   function(plain_id) {
     var mapZoom		=	3;
     var mapCanvas	=	document.createElement('canvas');
@@ -284,30 +313,25 @@ Map.prototype.initWebGL   =   function(plain_id) {
     this.globe		=	new DAT.Globe(container);
 
     var i, tweens	=	[];
+    var map_image   =   $('<img id="dynamic">');
+    var _this       =   this;
+    $('body').addClass('loading');
+    map_image.load(function() {
+        $('body').removeClass('loading');
+        TWEEN.start();
+        _this.globe.animate();
+        var details =   _this.destinations[plain_id];
+        _this.globe.setEndPoints(details);
+        _this.bindWebGLEvents();
+    }).attr('src', 'image/world_small.jpg');
 
-    TWEEN.start();
-    this.globe.animate();
-    this.addMarkers(plain_id);
-    var details =   this.destinations[plain_id];
-    this.globe.setEndPoints(details);
-    this.bindWebGLEvents();
 };
 
-Map.prototype.addMarkers    =   function(plain_id) {
-    var details =   this.destinations[plain_id];
-    //this.globe.moveTo(details.departure.lat, details.departure.lng);
-
-    this.globe.addSprite('marker_orange', details.departure.lat, details.departure.lng, true, 'marker_1');
-    this.globe.addSprite('marker_orange', details.destination.lat, details.destination.lng, true, 'marker_7');
-    var start   =   {latitude: details.departure.lat, longitude: details.departure.lng};
-    var end     =   {latitude: details.destination.lat, longitude: details.destination.lng};
-
-    this.globe.addConnectionLine(start, end, 500, 'start');
-    var midPoint    =   this.globe.midPoint(details.departure.lat, details.departure.lng, details.destination.lat, details.destination.lng);
-
-    this.globe.moveTo(midPoint.lat, midPoint.lng);
-};
-
+/**
+ * Map.prototype.bindWebGLEvents - Binds events releated to Webgl
+ *
+ * @return {type}  description
+ */
 Map.prototype.bindWebGLEvents   =   function() {
     var _this   =  this;
 
