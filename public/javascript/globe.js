@@ -240,7 +240,7 @@ DAT.Globe = function(container, colorFn) {
     	};*/
 
         //Loads the world Image
-        var texture =   THREE.ImageUtils.loadTexture('image/world_1.jpg');
+        var texture =   THREE.ImageUtils.loadTexture('image/world_small.jpg');
         texture.needsUpdate = true;
         material    =   new THREE.MeshPhongMaterial({map: texture});
 
