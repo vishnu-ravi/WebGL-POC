@@ -320,11 +320,27 @@ Map.prototype.initWebGL   =   function(plain_id) {
         $('body').removeClass('loading');
         TWEEN.start();
         _this.globe.animate();
+        _this.addMarkers(plain_id);
         var details =   _this.destinations[plain_id];
         _this.globe.setEndPoints(details);
         _this.bindWebGLEvents();
     }).attr('src', 'image/world_small.jpg');
 
+};
+
+Map.prototype.addMarkers    =   function(plain_id) {
+    var details =   this.destinations[plain_id];
+    //this.globe.moveTo(details.departure.lat, details.departure.lng);
+
+    this.globe.addSprite('marker_orange', details.departure.lat, details.departure.lng, true, 'marker_1');
+    this.globe.addSprite('marker_orange', details.destination.lat, details.destination.lng, true, 'marker_7');
+    var start   =   {latitude: details.departure.lat, longitude: details.departure.lng};
+    var end     =   {latitude: details.destination.lat, longitude: details.destination.lng};
+
+    this.globe.addConnectionLine(start, end, 500, 'start');
+    var midPoint    =   this.globe.midPoint(details.departure.lat, details.departure.lng, details.destination.lat, details.destination.lng);
+
+    this.globe.moveTo(midPoint.lat, midPoint.lng);
 };
 
 /**

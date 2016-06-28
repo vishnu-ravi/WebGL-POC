@@ -138,16 +138,7 @@ DAT.Globe = function(container, colorFn) {
      * @param  {json} details json containing the data of destination and departure points
      * @return {boolean}  returns true
      */
-    function setEndPoints(details) {
-        addSprite('marker_orange', details.departure.lat, details.departure.lng, 'marker_1', false);
-        addSprite('marker_orange', details.destination.lat, details.destination.lng, 'marker_7', false);
-        var start   =   {latitude: details.departure.lat, longitude: details.departure.lng};
-        var end     =   {latitude: details.destination.lat, longitude: details.destination.lng};
-
-        addConnectionLine(start, end, 500, 'start');
-        var mid_point    =   midPoint(details.departure.lat, details.departure.lng, details.destination.lat, details.destination.lng);
-        moveTo(mid_point.lat, mid_point.lng);
-
+    function setEndPoints(details) {        
         endpoints.departure.lat     =   details.departure.lat;
         endpoints.departure.lng     =   details.departure.lng;
 
@@ -275,7 +266,7 @@ DAT.Globe = function(container, colorFn) {
 
         var ballGeometry = new THREE.SphereGeometry( (globeRadius + 20), 40, 30 );
         var ball = new THREE.Mesh( ballGeometry, customMaterial );
-        scene.add( ball );
+        scene.add(ball);
 
         /**
          *   This commented part of code make bumps on the sphere, might be used in future
@@ -827,32 +818,34 @@ DAT.Globe = function(container, colorFn) {
         if(latLngConnection.length == (totalMarker + 2) || ! DAT.Globe.enableClick)
             return false;
 
-        document.getElementById('btn_clear').removeAttribute('disabled');
-        document.getElementById('btn_undo').removeAttribute('disabled');
-
         var is_touch_event    =   typeof event.changedPointers == 'undefined' ? false : true;
         var offsetX, offsetY;
+        var vector      =   new THREE.Vector3();
 
         if(is_touch_event) {
-          var rect  =   event.target.getBoundingClientRect();
-          var offsetX     =   event.changedPointers[0].pageX; - rect.left;
-          var offsetY     =   event.changedPointers[0].pageY; - rect.top;
+            var rect  =   event.target.getBoundingClientRect();
+
+            offsetX     =   event.changedPointers[0].pageX - rect.left;
+            offsetY     =   event.changedPointers[0].pageY - rect.top;
+            vector.set(parseFloat(( (offsetX) / window.innerWidth ) * 2 - 1), parseFloat(- ( (offsetY) / window.innerHeight) * 2 + 1), 1);
         }
         else {
-          offsetX   =   event.offsetX;
-          offsetY   =   event.offsetY;
+            var canvas    =   renderer.domElement;
+            offsetX   =   event.offsetX;
+            offsetY   =   event.offsetY;
+            vector.set(parseFloat(( (offsetX) / canvas.width ) * 2 - 1), parseFloat(- ( (offsetY) / canvas.height) * 2 + 1), parseFloat(0.5));
         }
 
-        var canvas    =   renderer.domElement;
-        var vector    =   new THREE.Vector3( ( (offsetX) / canvas.width ) * 2 - 1, - ( (offsetY) / canvas.height) * 2 + 1, 0.5 );
+        var raycaster   =   new THREE.Raycaster();
 
-        projector.unprojectVector( vector, camera );
-
-        var ray   =   new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
-
-        var intersects    =   ray.intersectObject(globe3d);
+        vector.unproject(camera);
+        raycaster.set(camera.position, vector.sub(camera.position).normalize())
+        var intersects = raycaster.intersectObjects([globe3d], true);
 
         if (intersects.length > 0) {
+            document.getElementById('btn_clear').removeAttribute('disabled');
+            document.getElementById('btn_undo').removeAttribute('disabled');
+
             object  =   intersects[0];
 
             r       =   globeRadius;
