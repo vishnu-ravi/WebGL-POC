@@ -110,7 +110,7 @@ DAT.Globe = function(container, colorFn) {
     }
 
     /**
-     * midPoint - Used to get the
+     * midPoint - Used to get the midpoints of two latitudes and longitudes
      *
      * @param  {float} lat1 Latitude 1
      * @param  {float} lon1 longitude 1
